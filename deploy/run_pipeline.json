@@ -1,0 +1,18 @@
+{
+  "run_name": "fleet-ecu-pipeline",
+  "tasks": [
+    {
+      "task_key": "simulate_raw",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/CHANGE_ME/fleet-ecu-demo/01_simulate_raw"
+      }
+    },
+    {
+      "task_key": "prepare",
+      "depends_on": [{"task_key": "simulate_raw"}],
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/CHANGE_ME/fleet-ecu-demo/02_prepare"
+      }
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+command: ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# NOTE for a new workspace: set CATALOG to match 00_config.py, and make sure the
+# app is created with a `sql-warehouse` resource (see README "Deploy the App").
+# DATABRICKS_WAREHOUSE_HTTP_PATH is resolved from that resource at deploy time --
+# no warehouse id is hardcoded here.
+env:
+  - name: CATALOG
+    value: serverless_stable_7qzrfp_catalog
+  - name: SCHEMA
+    value: field_telemetry_demo
+  - name: DATABRICKS_WAREHOUSE_HTTP_PATH
+    valueFrom: sql-warehouse

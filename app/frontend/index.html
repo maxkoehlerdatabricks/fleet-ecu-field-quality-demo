@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Fleet ECU Dashboard</title>
+<script src="vendor/plotly.min.js"></script>
+<style>
+  :root{ --ink:#1B3139; --coral:#FF3621; --slate:#618794; --line:#e6e4df; --bg:#F9F7F4; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'DM Sans',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+  header{padding:12px 20px;border-bottom:1px solid var(--line);background:#fff}
+  header h1{margin:0;font-size:16px}
+  header p{margin:3px 0 0;font-size:12px;color:var(--slate)}
+  .tabs{display:flex;gap:6px;padding:10px 20px 0}
+  .tab{font-size:12px;padding:6px 12px;border:1px solid var(--line);border-bottom:none;
+       border-radius:6px 6px 0 0;background:#f0efeb;cursor:pointer;color:var(--slate)}
+  .tab.active{background:#fff;color:var(--ink);font-weight:600}
+  .tabdesc{font-size:11px;color:var(--slate);padding:6px 20px 0;min-height:30px}
+  .wrap{display:flex;flex-direction:column;gap:14px;padding:8px 14px 40px}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;position:relative}
+  .panel h2{margin:2px 4px 4px;font-size:13px}
+  .plot{width:100%;height:440px}
+  #left{height:66vh}                          /* full-width, tall: the primary canvas */
+  .hidden{display:none}
+  .hint{font-size:11px;color:var(--slate);text-align:center;padding:6px;font-style:italic}
+  .stat{font-size:11px;color:var(--slate);margin:6px 4px 0}
+  table{border-collapse:collapse;width:100%;font-size:11px;margin-top:8px}
+  th,td{border-bottom:1px solid var(--line);padding:3px 6px;text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--slate);font-weight:600}
+  tr.vrow{cursor:pointer}
+  tr.vrow:hover{background:#fff3ee}
+  tr.vrow.sel{background:#ffe6dc;font-weight:600}
+  .bottom{padding:0 14px 16px}
+  .bottom .panel{min-height:0}
+  .tag{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;background:#eef;color:#334;margin-left:6px}
+  .tab-note{background:#fff8f0;border:1px solid #ffd9c9;border-radius:6px;padding:6px 10px;font-size:11px;margin:0 4px 6px;color:#8a3b1f}
+</style>
+</head>
+<body>
+<header>
+  <h1>Fleet EV Battery — Field-Quality Monitor <span class="tag">Databricks App</span></h1>
+  <p>Pick a left-plot visualization, then <b>box-select</b> (drag a rectangle) over the suspects.
+     The right panel fetches their raw traces + forensic detail live from the lakehouse.</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-v="curves">A · Overlaid raw curves</div>
+  <div class="tab" data-v="density">B · Raw-sample density</div>
+  <div class="tab" data-v="phase">C · Phase portrait</div>
+</div>
+<div class="tabdesc" id="tabdesc"></div>
+
+<div class="wrap">
+  <div class="panel">
+    <h2 id="left-title"></h2>
+    <div class="tab-note" id="tab-note"></div>
+    <div id="left" class="plot"></div>
+    <div class="stat" id="left-stat">loading…</div>
+    <div class="hint" id="scroll-hint">Drag a rectangle (box-select) over the suspects, then scroll down ↓</div>
+  </div>
+
+  <div class="panel hidden" id="right-panel">
+    <h2>Suspect group <span id="rp-badge" class="tag"></span></h2>
+    <div id="right" class="plot"></div>
+    <div id="suspects"></div>
+    <div class="stat" id="right-stat"></div>
+    <div class="hint">Click a vehicle row to inspect it ↓</div>
+  </div>
+
+  <div class="panel hidden" id="bottom-panel">
+    <h2 id="bottom-title">Single-vehicle detail <span id="bp-badge" class="tag"></span></h2>
+    <div id="bottom" class="plot" style="height:360px"></div>
+  </div>
+</div>
+
+<script>
+const COL = {ink:'#1B3139', coral:'#FF3621', slate:'#618794'};
+let VIEW='curves', BAND=null, DATA={};
+
+const DESC = {
+  curves: {title:'Cell temperature vs time-in-trip — every car’s raw curve overlaid',
+    note:'Tableau can only draw an aggregated percentile band here — the individual outlier curve’s shape is impossible to render.',
+    tab:'Thousands of raw 10 Hz curves form a dense ribbon; an outlier curve peels upward out of it. Color = seconds spent above 55°C.'},
+  density: {title:'Raw-sample density — State of Charge vs cell temperature',
+    note:'Tableau’s hexbin is coarse and pre-aggregated; a lone hot outlier is smeared into a bin and disappears.',
+    tab:'Full-resolution 2D histogram of every raw sample (log color). Outliers are faint hot cells floating above the main cloud.'},
+  phase: {title:'Phase portrait — pack current vs cell temperature (per drive/charge cycle)',
+    note:'Thousands of raw per-cycle trajectories — beyond Tableau’s one-mark-per-row model.',
+    tab:'Each faint loop is one car-day’s current–temperature trajectory. A hot cycle bulges upward. Color = hot-seconds.'}
+};
+
+async function loadBand(){ const r=await fetch('/api/band'); BAND=(await r.json()).band; }
+
+function colorbar(title){ return {colorscale:[[0,'#9aa7ad'],[0.15,'#f0c419'],[0.5,'#FF8C42'],[1,COL.coral]],
+  colorbar:{title:{text:title,font:{size:10}},thickness:10,len:0.7}}; }
+
+async function drawCurves(){
+  const r=await fetch('/api/curves'); const d=(await r.json()); DATA.curves=d;
+  const byKey={}; d.curves.forEach(p=>{const k=p.vin+'|'+p.day;(byKey[k]=byKey[k]||{x:[],y:[],hot:p.hot_seconds}); byKey[k].x.push(p.t_sec); byKey[k].y.push(p.cell_temp_max_c);});
+  const keys=Object.keys(byKey);
+  const maxHot=Math.max(1,...keys.map(k=>byKey[k].hot));
+  const traces=keys.map(k=>{const c=byKey[k]; const t=c.hot/maxHot;
+    const col = c.hot<1? 'rgba(154,167,173,0.25)' : `rgba(255,${Math.round(140-100*t)},${Math.round(66-40*t)},0.9)`;
+    return {x:c.x,y:c.y,mode:'lines',type:'scattergl',line:{width:c.hot<1?1:2,color:col},hoverinfo:'skip',showlegend:false};});
+  // dummy trace to show a colorbar legend for hot-seconds
+  traces.push({x:[null],y:[null],mode:'markers',showlegend:false,
+    marker:{color:[0],cmin:0,cmax:maxHot,...colorbar('hot-seconds')}});
+  Plotly.newPlot('left',traces,{margin:{t:6,r:10,b:40,l:48},dragmode:'select',
+    xaxis:{title:'seconds into trip'},yaxis:{title:'cell_temp_max (°C)'},
+    shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:55,y1:55,line:{color:COL.coral,dash:'dot',width:1}}]},
+    {displayModeBar:true,displaylogo:false,modeBarButtonsToRemove:['lasso2d','zoom2d','pan2d','autoScale2d']});
+  document.getElementById('left-stat').textContent=`${keys.length} raw car-day curves overlaid (every point rendered — no binning)`;
+  wireSelect();
+}
+
+async function drawDensity(){
+  const r=await fetch('/api/density'); const d=(await r.json()); DATA.density=d;
+  const cells=d.cells;
+  const t={x:cells.map(c=>c.soc_bin),y:cells.map(c=>c.temp_bin),z:cells.map(c=>c.log_n),
+    mode:'markers',type:'scattergl',
+    marker:{size:9,symbol:'square',color:cells.map(c=>c.log_n),
+      colorscale:[[0,'#eef1f2'],[0.4,'#9aa7ad'],[0.7,'#FF8C42'],[1,COL.coral]],
+      colorbar:{title:{text:'log10(count)',font:{size:10}},thickness:10,len:0.7}},
+    hovertemplate:'SoC %{x}%<br>temp %{y}°C<br>n=10^%{marker.color:.2f}<extra></extra>'};
+  Plotly.newPlot('left',[t],{margin:{t:6,r:10,b:40,l:48},dragmode:'select',
+    xaxis:{title:'State of Charge (%)'},yaxis:{title:'cell_temp_max (°C)'},
+    shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:55,y1:55,line:{color:COL.coral,dash:'dot',width:1}}]},
+    {displayModeBar:true,displaylogo:false,modeBarButtonsToRemove:['lasso2d','zoom2d','pan2d','autoScale2d']});
+  document.getElementById('left-stat').textContent=`${cells.length} density cells over all raw samples (full-resolution histogram)`;
+  wireSelect();
+}
+
+async function drawPhase(){
+  const r=await fetch('/api/phase'); const d=(await r.json()); DATA.phase=d;
+  const byKey={}; d.points.forEach(p=>{const k=p.vin+'|'+p.day;(byKey[k]=byKey[k]||{x:[],y:[],hot:p.hot_seconds}); byKey[k].x.push(p.pack_current_a); byKey[k].y.push(p.cell_temp_max_c);});
+  const keys=Object.keys(byKey); const maxHot=Math.max(1,...keys.map(k=>byKey[k].hot));
+  const traces=keys.map(k=>{const c=byKey[k]; const t=c.hot/maxHot;
+    const col=c.hot<1?'rgba(154,167,173,0.18)':`rgba(255,${Math.round(140-100*t)},${Math.round(66-40*t)},0.7)`;
+    return {x:c.x,y:c.y,mode:'lines',type:'scattergl',line:{width:1,color:col},hoverinfo:'skip',showlegend:false};});
+  traces.push({x:[null],y:[null],mode:'markers',showlegend:false,marker:{color:[0],cmin:0,cmax:maxHot,...colorbar('hot-seconds')}});
+  Plotly.newPlot('left',traces,{margin:{t:6,r:10,b:40,l:48},dragmode:'select',
+    xaxis:{title:'pack_current (A)  — negative = discharge'},yaxis:{title:'cell_temp_max (°C)'}},
+    {displayModeBar:true,displaylogo:false,modeBarButtonsToRemove:['lasso2d','zoom2d','pan2d','autoScale2d']});
+  document.getElementById('left-stat').textContent=`${keys.length} raw current–temperature loops overlaid`;
+  wireSelect();
+}
+
+function wireSelect(){
+  document.getElementById('left').on('plotly_selected', ev=>{
+    if(!ev||!ev.range) return;
+    const [x0,x1]=ev.range.x, [y0,y1]=ev.range.y;
+    doBrush({view:VIEW,x0,x1,y0,y1});
+  });
+}
+
+async function doBrush(box){
+  const rp=document.getElementById('right-panel');
+  rp.classList.remove('hidden');
+  // a fresh selection always starts from scratch: hide/clear the single-vehicle panel
+  const bp=document.getElementById('bottom-panel');
+  bp.classList.add('hidden'); document.getElementById('bottom').innerHTML='';
+  document.getElementById('rp-badge').textContent='loading…';
+  rp.scrollIntoView({behavior:'smooth', block:'start'});
+  const t0=performance.now();
+  const r=await fetch('/api/brush',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(box)});
+  const d=await r.json(); const ms=Math.round(performance.now()-t0);
+  // right plot: member raw traces (need time-in-trip x) + population band overlay
+  const byVin={}; d.traces.forEach(t=>{(byVin[t.vin]=byVin[t.vin]||{x:[],y:[]}); byVin[t.vin].x.push(t.ts); byVin[t.vin].y.push(t.cell_temp_max_c);});
+  const series=Object.entries(byVin).map(([vin,s])=>({x:s.x,y:s.y,type:'scattergl',mode:'lines',line:{width:1.3},name:vin.slice(-4)}));
+  Plotly.newPlot('right',series,{margin:{t:6,r:10,b:40,l:48},showlegend:true,legend:{font:{size:9}},
+    xaxis:{title:'time'},yaxis:{title:'cell_temp_max (°C)'},
+    shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:55,y1:55,line:{color:COL.coral,dash:'dot',width:1}}]},
+    {displayModeBar:false});
+  // suspects table (rows are clickable -> bottom single-vehicle plot)
+  const s=d.suspects||[];
+  let html='<table><tr><th>VIN</th><th>odometer km</th><th>peak °C</th><th>hot-sec</th><th>min V</th></tr>';
+  s.forEach(x=>{const hot=x.hot_seconds>0;
+    html+=`<tr class="vrow" data-vin="${x.vin}"${hot?' style="color:#b3341f"':''}>`+
+          `<td>${x.vin.slice(-6)}</td><td>${(x.odometer_km||0).toLocaleString()}</td>`+
+          `<td>${x.peak_temp_c}</td><td>${x.hot_seconds}</td><td>${x.min_voltage_v}</td></tr>`;});
+  html+='</table>';
+  const susEl=document.getElementById('suspects');
+  susEl.innerHTML = s.length?html:'<div class="stat">no cars in selection</div>';
+  susEl.querySelectorAll('tr.vrow').forEach(tr=>tr.onclick=()=>{
+    susEl.querySelectorAll('tr.vrow').forEach(r=>r.classList.remove('sel'));
+    tr.classList.add('sel'); drawVehicle(tr.dataset.vin);
+  });
+  document.getElementById('rp-badge').textContent=`${s.length} suspects`;
+  document.getElementById('right-stat').textContent=`pushdown fetched ${d.traces.length} raw rows for ${s.length} cars in ${ms} ms — never resident in the browser`;
+  // NO auto-selection: the single-vehicle panel stays hidden until the user clicks a row.
+}
+
+// bottom plot: one vehicle, raw samples, axes follow the active view
+const BOTTOM_AXES = {
+  curves: {xk:'t_sec',          xt:'seconds into trip', mode:'lines'},
+  density:{xk:'soc_pct',        xt:'State of Charge (%)', mode:'markers'},
+  phase:  {xk:'pack_current_a', xt:'pack_current (A)',  mode:'markers'}
+};
+async function drawVehicle(vin){
+  const bp=document.getElementById('bottom-panel');
+  bp.classList.remove('hidden');
+  document.getElementById('bp-badge').textContent='loading '+vin.slice(-6)+'…';
+  bp.scrollIntoView({behavior:'smooth', block:'start'});
+  const r=await fetch('/api/vehicle?vin='+encodeURIComponent(vin));
+  const d=await r.json(); const cfg=BOTTOM_AXES[VIEW]; const S=d.samples;
+  const trace={ x:S.map(p=>p[cfg.xk]), y:S.map(p=>p.cell_temp_max_c), type:'scattergl',
+    mode:cfg.mode, line:{width:1,color:COL.coral},
+    marker:{size:3,color:S.map(p=>p.cell_temp_max_c),
+      colorscale:[[0,'#9aa7ad'],[0.6,'#FF8C42'],[1,COL.coral]],
+      colorbar:{title:{text:'°C',font:{size:9}},thickness:8,len:0.7}},
+    name:vin.slice(-6),hoverinfo:cfg.mode==='markers'?'x+y':'skip'};
+  Plotly.newPlot('bottom',[trace],{margin:{t:6,r:10,b:40,l:48},showlegend:false,
+    xaxis:{title:cfg.xt},yaxis:{title:'cell_temp_max (°C)'},
+    shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:55,y1:55,line:{color:COL.coral,dash:'dot',width:1}}]},
+    {displayModeBar:false});
+  document.getElementById('bp-badge').textContent=`${vin.slice(-6)} · ${S.length.toLocaleString()} raw samples`;
+  document.getElementById('bottom-title').firstChild.textContent=
+     `Single-vehicle detail — ${cfg.xt.split(' (')[0]} vs cell temp `;
+}
+
+function setView(v){
+  VIEW=v;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.v===v));
+  document.getElementById('left-title').textContent=DESC[v].title;
+  document.getElementById('tab-note').textContent='Tableau limit: '+DESC[v].note;
+  document.getElementById('tabdesc').textContent=DESC[v].tab;
+  // switching tabs resets everything to the "nothing selected" state
+  document.getElementById('right').innerHTML=''; document.getElementById('suspects').innerHTML='';
+  document.getElementById('bottom').innerHTML='';
+  document.getElementById('right-panel').classList.add('hidden');
+  document.getElementById('bottom-panel').classList.add('hidden');
+  document.getElementById('rp-badge').textContent=''; document.getElementById('right-stat').textContent='';
+  ({curves:drawCurves,density:drawDensity,phase:drawPhase})[v]();
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>setView(t.dataset.v));
+(async()=>{ await loadBand(); setView('curves'); })();
+</script>
+</body>
+</html>
