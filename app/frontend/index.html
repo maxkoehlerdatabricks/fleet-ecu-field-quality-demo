@@ -12,6 +12,10 @@
   header{padding:12px 20px;border-bottom:1px solid var(--line);background:#fff}
   header h1{margin:0;font-size:16px}
   header p{margin:3px 0 0;font-size:12px;color:var(--slate)}
+  .statbar{margin:10px 0 0;display:flex;gap:8px;flex-wrap:wrap}
+  .pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:12px;
+        background:#eef1f2;color:#334;border:1px solid var(--line)}
+  .pill.hot{background:#ffe6dc;color:#b3341f;border-color:#ffd9c9}
   .tabs{display:flex;gap:6px;padding:10px 20px 0}
   .tab{font-size:12px;padding:6px 12px;border:1px solid var(--line);border-bottom:none;
        border-radius:6px 6px 0 0;background:#f0efeb;cursor:pointer;color:var(--slate)}
@@ -43,6 +47,12 @@
   <h1>Fleet EV Battery — Field-Quality Monitor <span class="tag">Databricks App</span></h1>
   <p>Pick a left-plot visualization, then <b>box-select</b> (drag a rectangle) over the suspects.
      The right panel fetches their raw traces + forensic detail live from the lakehouse.</p>
+  <div class="statbar" id="statbar">
+    <span class="pill" id="pill-cars">… vehicles</span>
+    <span class="pill" id="pill-rows">… raw samples</span>
+    <span class="pill" id="pill-days">… days</span>
+    <span class="pill hot" id="pill-hot">… running hot</span>
+  </div>
 </header>
 
 <div class="tabs">
@@ -92,6 +102,17 @@ const DESC = {
 };
 
 async function loadBand(){ const r=await fetch('/api/band'); BAND=(await r.json()).band; }
+
+async function loadStats(){
+  try{
+    const s = await (await fetch('/api/stats')).json();
+    const nf = n => Number(n).toLocaleString();
+    document.getElementById('pill-cars').textContent = `${nf(s.n_cars)} vehicles`;
+    document.getElementById('pill-rows').textContent = `${nf(s.raw_rows)} raw samples`;
+    document.getElementById('pill-days').textContent = `${nf(s.n_days)} days of telemetry`;
+    document.getElementById('pill-hot').textContent  = `${nf(s.n_hot)} running hot`;
+  }catch(e){ document.getElementById('statbar').style.display='none'; }
+}
 
 function colorbar(title){ return {colorscale:[[0,'#9aa7ad'],[0.15,'#f0c419'],[0.5,'#FF8C42'],[1,COL.coral]],
   colorbar:{title:{text:title,font:{size:10}},thickness:10,len:0.7}}; }
@@ -235,7 +256,7 @@ function setView(v){
   ({curves:drawCurves,density:drawDensity,phase:drawPhase})[v]();
 }
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>setView(t.dataset.v));
-(async()=>{ await loadBand(); setView('curves'); })();
+(async()=>{ loadStats(); await loadBand(); setView('curves'); })();
 </script>
 </body>
 </html>

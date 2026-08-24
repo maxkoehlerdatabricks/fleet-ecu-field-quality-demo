@@ -110,6 +110,25 @@ def _curves_cached():
     return _json_safe(rows)
 
 
+@lru_cache(maxsize=1)
+def _stats_cached():
+    """Fleet size shown in the header. Reads live from the tables so it is always correct
+    for whatever N_CARS the data was built with."""
+    r = _query(f"""
+        SELECT (SELECT count(*)           FROM {RAW})  AS raw_rows,
+               (SELECT count(DISTINCT vin) FROM {RAW})  AS n_cars,
+               (SELECT count(DISTINCT day) FROM {RAW})  AS n_days,
+               (SELECT count(DISTINCT vin) FROM {DAILY}
+                WHERE hot_seconds > 0)                  AS n_hot
+    """)[0]
+    return r
+
+
+@app.get("/api/stats")
+def stats():
+    return JSONResponse(_json_safe([_stats_cached()])[0])
+
+
 @app.get("/api/curves")
 def curves():
     return JSONResponse({"curves": _curves_cached(), "hot_c": HOT_C})
