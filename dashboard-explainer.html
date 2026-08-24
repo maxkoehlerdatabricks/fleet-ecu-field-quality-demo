@@ -298,6 +298,8 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
   text-transform:uppercase;color:var(--warm);font-weight:600;margin-bottom:6px}
 .field p{font-size:14.5px;color:var(--ink-soft);margin:0 0 8px;max-width:none}
 .field p:last-child{margin-bottom:0}
+.field ol{margin:0 0 8px;padding-left:22px}
+.field li{font-size:14.5px;color:var(--ink-soft);margin:2px 0}
 .field b{color:var(--ink)}
 .drawfig{margin:22px 0 6px}
 .drawfig svg{width:100%;height:auto;display:block;border-radius:12px;
@@ -777,16 +779,19 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
 
   <div class="field">
     <div class="fl">From the field</div>
-    <p>A customer running a well-optimized <b>Tableau Server</b> saw <b>extract refreshes take
-      minutes</b> at this kind of scale. That is expected, not a misconfiguration: an extract refresh
-      is a batch rebuild of a full second copy of the data — query the source, move the rows, rebuild
-      and re-index the Hyper file, publish. At raw grain over a large fleet that is minutes of I/O by
-      physics; tuning runs it closer to that floor but can’t remove the rebuild. The only ways down —
-      incremental refresh or a pre-aggregated extract — either don’t fit every data shape or drop the
-      raw grain (and the outlier) that the analysis needs.</p>
-    <p>The App pays none of this: <b>there is no extract to refresh.</b> It reads the lakehouse tables
-      directly; its one small overview aggregate is refreshed by a cheap query, not a full
-      re-materialization of the raw data — so no minutes-long rebuild and no staleness window.</p>
+    <p>A customer on a well-tuned <b>Tableau Server</b> saw extract refreshes take <b>minutes</b>. That
+      is expected, not a misconfiguration.</p>
+    <p>A refresh rebuilds a full copy of the data every time:</p>
+    <ol>
+      <li>read the rows from the source,</li>
+      <li>move them to the server,</li>
+      <li>rebuild and re-index the Hyper file.</li>
+    </ol>
+    <p>At raw grain that is minutes of I/O. Tuning gets you near that floor; it can’t skip the rebuild.
+      Shrinking it means either incremental refresh (doesn’t fit every case) or a pre-aggregated extract
+      — which drops the raw grain, and the outlier with it.</p>
+    <p><b>The App has no extract to refresh.</b> It reads the lakehouse directly. Its one small overview
+      aggregate is a cheap query, not a rebuild — so no minutes-long refresh, no stale window.</p>
   </div>
 </section>
 
