@@ -18,8 +18,7 @@ from pyspark.sql import functions as F
 
 spark.sql(f"USE {CATALOG}.{SCHEMA}")
 
-# odometer bucket width (km). Small set: 2000 km buckets.
-ODO_BUCKET_KM = 2000
+# ODO_BUCKET_KM and HOT_THRESHOLD_C both come from 00_config now (single source of truth).
 
 # COMMAND ----------
 
@@ -35,7 +34,7 @@ daily = (
         F.round(F.expr("percentile(cell_temp_max_c, 0.99)"), 2).alias("cell_temp_p99"),
         F.round(F.max("cell_temp_max_c"), 2).alias("cell_temp_max"),
         F.round(F.min("cell_voltage_min_v"), 3).alias("cell_voltage_min"),
-        F.sum(F.when(F.col("cell_temp_max_c") > 55, 1.0 / HZ).otherwise(0.0)).alias("hot_seconds"),
+        F.sum(F.when(F.col("cell_temp_max_c") > HOT_THRESHOLD_C, 1.0 / HZ).otherwise(0.0)).alias("hot_seconds"),
         F.sum(F.when(F.col("event_type") == "dc_charge", 1).otherwise(0)).alias("dc_charge_samples"),
         F.count("*").alias("n_samples"),
     )
@@ -68,7 +67,7 @@ band = (
     )
     .orderBy("odometer_bucket_km")
 )
-band.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(f"{CATALOG}.{SCHEMA}.bms_band")
+band.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(BAND_TABLE)
 display(band)
 
 # COMMAND ----------

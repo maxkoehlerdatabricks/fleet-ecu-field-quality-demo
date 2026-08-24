@@ -140,22 +140,46 @@ Run these in order. `<WS>` = `/Workspace/Users/<you@example.com>/fleet-ecu-demo`
 
 ---
 
-## Data size — start small, scale later
+## Configuration — everything lives in `00_config.py`
 
-All size knobs live in `00_config.py`:
+`00_config.py` is the single source of truth. Every other notebook pulls it in via
+`%run ./00_config`, so you change a value once and it propagates. It is organized in sections:
 
+**Destination** (edit for a new workspace)
 ```python
-N_CARS  = 20    # vehicles
-N_DAYS  = 3     # days of history
-HZ      = 10    # sample rate (Hz)
-DRIVE_H = 1.0   # hours driven per car per day
+CATALOG = "my_catalog"            # Unity Catalog to build in
+SCHEMA  = "field_telemetry_demo"  # schema inside it
+CREATE_CATALOG_IF_MISSING = True  # best-effort catalog create (needs CREATE CATALOG on metastore)
+```
+`00_config` creates the **schema** (always) and attempts the **catalog** (continues gracefully if
+you lack the privilege — managed catalogs are usually pre-provisioned).
+
+**Data size** (start small, scale later)
+```python
+N_CARS  = 20    # vehicles          HZ      = 10    # sample rate (Hz)
+N_DAYS  = 3     # days of history    DRIVE_H = 1.0   # hours driven per car per day
+```
+Default ≈ 2.16 M raw rows. Raise `N_CARS`/`N_DAYS` and **re-run `01_simulate_raw` + `02_prepare`**;
+the Spark simulation parallelizes as you scale.
+
+**Scenario** (how the outliers behave)
+```python
+BAD_CAR_FRAC       = 0.15   # fraction of cars that run hot
+HOT_THRESHOLD_C    = 55.0   # hot threshold — shared by 01, 02 AND the App (keep them equal)
+HEALTHY_BASELINE_C = 28.0   # normal fleet cell temp
+SPIKE_AMPLITUDE_C  = 22.0   # how far outliers rise above healthy — the main "visibility" dial
+RANDOM_SEED        = 42     # deterministic fleet; change for a different draw
 ```
 
-The default (20 cars × 3 days) is ~2.16 M raw rows — fast to build and enough that the outliers
-are visible. To scale up, raise `N_CARS` / `N_DAYS` and **re-run `01_simulate_raw` and
-`02_prepare`**. The app and notebook need no changes.
+**Aging / granularity**
+```python
+ODO_START_MIN_KM = 500 ; ODO_START_MAX_KM = 90000   # fleet age spread
+ODO_BUCKET_KM    = 2000                              # left-plot aggregate resolution
+```
 
-The simulation is written in Spark, so it parallelizes as you scale.
+> **Note:** the App (`app/backend/app.py`) keeps its own `HOT_C` constant because it is a separate
+> deployed service that cannot import the notebook config. If you change `HOT_THRESHOLD_C`, change
+> `HOT_C` to match (it is commented there).
 
 ---
 

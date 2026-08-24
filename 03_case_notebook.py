@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 daily = spark.table(DAILY_TABLE).join(spark.table(VIN_TABLE), "vin").toPandas()
-band  = spark.table(f"{CATALOG}.{SCHEMA}.bms_band").toPandas().sort_values("odometer_bucket_km")
+band  = spark.table(BAND_TABLE).toPandas().sort_values("odometer_bucket_km")
 print(f"{len(daily)} (vin,bucket) points, {daily.vin.nunique()} cars")
 
 # COMMAND ----------
@@ -64,7 +64,7 @@ ax.legend(loc="upper left"); plt.tight_layout(); plt.show()
 # COMMAND ----------
 
 # emulate a brush box: high p99 (the outliers)
-Y0, Y1 = 55.0, 200.0
+Y0, Y1 = HOT_THRESHOLD_C, 200.0   # brush the region above the hot threshold (00_config)
 X0, X1 = 0, int(daily.odometer_bucket_km.max()) + ODO_START_MAX_KM
 box_vins = sorted(daily[(daily.cell_temp_p99.between(Y0, Y1))].vin.unique().tolist())
 print(f"Brush box (p99 in [{Y0},{Y1}]) selects {len(box_vins)} vins: {box_vins}")
@@ -84,7 +84,7 @@ if box_vins:
     fig, ax = plt.subplots(figsize=(11, 6))
     for vin, g in raw_pd.groupby("vin"):
         ax.plot(g.ts, g.cell_temp_max_c, lw=0.6, label=vin[-4:])
-    ax.axhline(55, c="#FF3621", ls="--", lw=1, label="55°C hot threshold")
+    ax.axhline(HOT_THRESHOLD_C, c="#FF3621", ls="--", lw=1, label=f"{HOT_THRESHOLD_C:.0f}°C hot threshold")
     ax.set_xlabel("time"); ax.set_ylabel("cell_temp_max (°C)")
     ax.set_title("Right plot: RAW traces of the brushed VINs — the seconds-long spikes an average would hide")
     ax.legend(loc="upper right", ncol=2, fontsize=8); plt.tight_layout(); plt.show()

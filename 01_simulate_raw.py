@@ -20,8 +20,7 @@ from pyspark.sql import functions as F
 from pyspark.sql import types as T
 import math
 
-# Catalog already exists and we lack CREATE CATALOG on the metastore; only make the schema.
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{SCHEMA}")
+# Catalog + schema are created by 00_config (best-effort catalog, always schema). Just USE it.
 spark.sql(f"USE {CATALOG}.{SCHEMA}")
 
 # COMMAND ----------
@@ -33,7 +32,7 @@ spark.sql(f"USE {CATALOG}.{SCHEMA}")
 # COMMAND ----------
 
 import random
-random.seed(42)
+random.seed(RANDOM_SEED)   # deterministic fleet; RANDOM_SEED lives in 00_config
 
 n_bad = max(1, round(N_CARS * BAD_CAR_FRAC))
 bad_ids = set(random.sample(range(N_CARS), n_bad))
@@ -116,15 +115,16 @@ grid = grid.withColumn(
 odo_drift = (F.col("odometer_km") / 100000.0) * 8.0          # +8C per 100k km, healthy aging
 load_warm = F.abs(F.col("pack_current_a")) / 10.0            # warmer under load
 healthy_temp = (
-    F.lit(28.0) + odo_drift + load_warm + (F.col("ambient_temp_c") - 24.0) * 0.5 + noise(4) * 1.5
+    F.lit(HEALTHY_BASELINE_C)                                # fleet baseline (00_config)
+    + odo_drift + load_warm + (F.col("ambient_temp_c") - 24.0) * 0.5 + noise(4) * 1.5
 )
 
 # Bad cars: a thermal EXCURSION. A hot spike that lasts a few seconds, recurring,
 # far above what their (often low) mileage would justify. This is the anomaly the
 # left plot must surface and the right plot must show as a raw trace.
-# Trigger: short windows every ~5 min; amplitude large (+20..30C).
+# Trigger: short 8-second windows every ~5 min; amplitude = SPIKE_AMPLITUDE_C (00_config).
 in_spike = (F.col("s") % (5 * 60 * HZ)).between(0, 8 * HZ)   # 8-second spike every 5 min
-spike_amp = F.lit(22.0) + noise(5) * 6.0
+spike_amp = F.lit(SPIKE_AMPLITUDE_C) + noise(5) * 6.0
 bad_temp = healthy_temp + F.when(in_spike, spike_amp).otherwise(F.lit(3.0))  # bad cars run warm even between spikes
 
 grid = grid.withColumn(

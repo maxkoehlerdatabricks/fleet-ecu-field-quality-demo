@@ -33,7 +33,8 @@ RAW     = f"{CATALOG}.{SCHEMA}.bms_signal"
 DAILY   = f"{CATALOG}.{SCHEMA}.bms_daily_vin"
 BAND    = f"{CATALOG}.{SCHEMA}.bms_band"
 VEH     = f"{CATALOG}.{SCHEMA}.vehicle"
-HOT_C   = 55.0   # hot threshold (deg C)
+HOT_C   = 55.0   # hot threshold (deg C). MUST match HOT_THRESHOLD_C in 00_config.py
+                 # (the App is a separate deployed service and can't import the notebook config).
 
 _wh = (os.getenv("DATABRICKS_WAREHOUSE_HTTP_PATH") or os.getenv("SQL_HTTP_PATH")
        or os.getenv("WAREHOUSE_ID", ""))
