@@ -237,20 +237,39 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
 .doctab .idx{color:var(--hot);margin-right:7px;font-weight:600}
 .panel-doc{display:none}
 .panel-doc.active{display:block}
+/* app-layout mock (top-to-bottom of the real screen) */
+.applayout{display:flex;flex-direction:column;gap:10px;margin:22px 0 6px}
+.applayout .lyr{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:14px 16px;box-shadow:var(--shadow);position:relative}
+.applayout .lyr .tag2{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--cool);
+  letter-spacing:.04em}
+.applayout .lyr h4{font-family:"Inter Tight",sans-serif;font-size:15px;margin:3px 0 4px}
+.applayout .lyr p{font-size:14px;color:var(--ink-soft);margin:0;max-width:none}
+.applayout .down{align-self:center;color:var(--hot);font-family:"IBM Plex Mono",monospace;
+  font-size:12px;margin:-4px 0}
+.applayout .pillrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.applayout .pillrow span{font-size:10.5px;font-family:"IBM Plex Mono",monospace;
+  background:color-mix(in srgb,var(--ground) 60%,var(--panel));border:1px solid var(--line);
+  border-radius:10px;padding:2px 8px;color:var(--slate)}
+.verdict{background:color-mix(in srgb,var(--ok) 9%,var(--panel));
+  border:1px solid color-mix(in srgb,var(--ok) 30%,var(--line));border-radius:12px;
+  padding:20px 24px;margin:26px 0;font-size:17px}
+.verdict b{color:var(--ok)}
 </style>
 <div class="doctabs">
-  <button class="doctab active" data-tab="story"><span class="idx">1</span>The Outlier in the Pack</button>
-  <button class="doctab" data-tab="workflow"><span class="idx">2</span>Workflow</button>
+  <button class="doctab active" data-tab="story"><span class="idx">1</span>The Case</button>
+  <button class="doctab" data-tab="workflow"><span class="idx">2</span>App Workflow</button>
   <button class="doctab" data-tab="tools"><span class="idx">3</span>Tools</button>
 </div>
 <div class="panel-doc active" id="tab-story">
 <header>
   <div class="hero">
-    <div class="eyebrow">Fleet EV battery · field-quality telemetry</div>
+    <div class="eyebrow">Fleet EV Battery · field-quality monitor</div>
     <h1>The outlier in the pack</h1>
-    <p class="lede">Why the dangerous signal in battery data is never the average — it is the
-      handful of packs that ran hot when they had no reason to. And why finding them means
-      keeping every raw sample, not rolling it up.</p>
+    <p class="lede">This is a monitor for the <strong>traction batteries of a fleet of electric
+      vehicles</strong>. Every pack streams the temperature of its hottest cell, ten times a second.
+      The job is to find the one battery, among hundreds, that runs too hot — before it becomes a
+      failure. Here is the battery, what the data shows, and how the dashboard works.</p>
     <div class="ramp"></div>
     <div class="ramp-labels mono">
       <span>28&nbsp;°C&nbsp;nominal</span><span>45&nbsp;°C&nbsp;elevated</span>
@@ -258,256 +277,46 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
     </div>
   </div>
 </header>
+
 <div class="wrap">
 
+<section>
+  <div class="eyebrow">The product</div>
+  <h2>An EV battery, watched one cell at a time</h2>
+  <p class="sub">Each vehicle carries a traction battery — a <em>pack</em> of many <em>modules</em>,
+    each a stack of <em>cells</em>. A Battery Management System reports the temperature of the hottest
+    cell in the pack, about ten times a second, for every car in the fleet.</p>
+  <p>A cell that climbs to 70&nbsp;°C for a few seconds during a fast charge is a thermal event — a
+    precursor to accelerated aging, capacity loss, and, at the extreme, thermal runaway. One bad cell,
+    buried among thousands, is enough to move the number. Finding that pack while it is still just an
+    outlier is the whole point of the monitor.</p>
+</section>
 
 <section>
-  <div class="eyebrow">The problem</div>
-  <h2>An average is where a battery fault goes to hide</h2>
-  <p class="sub">Every EV carries a Battery Management System that reports per-cell temperature,
-    voltage, and pack current about ten times a second. A fleet of thousands of cars streams
-    those signals back for field-quality analysis. The question that matters is simple to ask
-    and hard to answer: <em>which individual packs run hotter than they should?</em></p>
-
-  <p>A cell that climbs to 70&nbsp;°C for eight seconds during a fast charge is a thermal event —
-    a precursor to accelerated aging, capacity loss, and, at the extreme, thermal runaway. It is
-    also almost invisible. Averaged across a day of driving, across a pack of cells, across a
-    fleet, those eight seconds vanish into a comfortable mid-thirties number that looks perfectly
-    healthy.</p>
-
-  <p>This is the numbers from the demo fleet — 200 cars, three days, 21.6&nbsp;million raw samples:</p>
-
+  <div class="eyebrow">Why an average hides the fault</div>
+  <h2>The dangerous signal is never the average</h2>
+  <p class="sub">The fault is a rare, seconds-long deviation. Averaging — over time, over the cells in
+    a pack, over the fleet — is exactly what erases it.</p>
+  <p>These are the numbers from the demo fleet — 200 cars, three days, 21.6&nbsp;million raw samples:</p>
   <div class="proof">
-    <div class="stat cool">
-      <div class="k">Fleet median</div>
-      <div class="v">39.1</div>
-      <div class="u">°C — what an average dashboard shows</div>
-    </div>
-    <div class="stat">
-      <div class="k">Top 0.1% of samples</div>
-      <div class="v">62.8</div>
-      <div class="u">°C — already past the risk line</div>
-    </div>
-    <div class="stat hot">
-      <div class="k">Hottest sample</div>
-      <div class="v">72.5</div>
-      <div class="u">°C — from just 30 of 200 cars</div>
-    </div>
+    <div class="stat cool"><div class="k">Fleet median</div><div class="v">39.1</div>
+      <div class="u">°C — what an average dashboard shows</div></div>
+    <div class="stat"><div class="k">Top 0.1% of samples</div><div class="v">62.8</div>
+      <div class="u">°C — already past the risk line</div></div>
+    <div class="stat hot"><div class="k">Hottest sample</div><div class="v">72.5</div>
+      <div class="u">°C — from 30 of 200 cars</div></div>
   </div>
-
-  <p class="callout">The whole fleet looks fine at 39&nbsp;°C. The truth — a 72&nbsp;°C excursion
-    on a handful of cars — lives in a fraction of a percent of the data. You cannot aggregate your way
-    to it. You have to keep the raw signal and go hunting.</p>
-
-  <p>That single constraint — <strong>outliers survive only at raw resolution</strong> — is what
-    shapes every plot below, and it is what separates a tool that streams raw detail on demand
-    from one that must pre-summarize to stay responsive.</p>
+  <p class="callout">The whole fleet looks fine at 39&nbsp;°C. The truth — a 72&nbsp;°C excursion on a
+    handful of cars — lives in a fraction of a percent of the data. You cannot aggregate your way to
+    it. You have to keep every raw sample and go hunting.</p>
 </section>
 
 <section>
-  <div class="eyebrow">Reading the plots</div>
-  <h2>Three ways to make an outlier show itself</h2>
-  <p class="sub">The same fault looks different depending on the axes you plot it against. Each
-    view answers a different question about a suspect pack — and each one falls apart the moment
-    you average it.</p>
-
-  <!-- CARD A -->
-  <div class="plot-card">
-    <div class="tag">VIEW A · time domain</div>
-    <h3>Overlaid raw curves — temperature against time-in-trip</h3>
-    <p>Every car's raw temperature trace for a trip, drawn on top of every other car's. Thousands
-      of near-identical curves stack into a dense ribbon: the healthy fleet, warming gently as the
-      trip goes on. A faulty pack draws a line that <em>peels up and out</em> of that ribbon —
-      a repeating spike every few minutes as a weak cell overheats under load.</p>
-    <figure>
-      <svg viewBox="0 0 640 220" role="img" aria-label="Dense ribbon of healthy temperature curves with one outlier curve spiking above a 55 degree threshold line">
-        <!-- threshold -->
-        <line x1="40" y1="70" x2="600" y2="70" stroke="var(--hot)" stroke-width="1" stroke-dasharray="4 4"/>
-        <text x="596" y="63" text-anchor="end" font-family="IBM Plex Mono" font-size="11" fill="var(--hot)">55 °C risk line</text>
-        <!-- healthy ribbon: several gently rising translucent curves -->
-        <g fill="none" stroke="var(--slate)" stroke-width="2" opacity="0.35">
-          <path d="M40,150 C180,140 360,120 600,108"/>
-          <path d="M40,158 C180,150 360,128 600,116"/>
-          <path d="M40,144 C180,134 360,114 600,102"/>
-          <path d="M40,164 C180,156 360,134 600,122"/>
-          <path d="M40,138 C180,130 360,110 600,98"/>
-        </g>
-        <!-- outlier: rises and spikes over the line -->
-        <path d="M40,150 C140,138 180,120 210,60 C230,30 250,30 270,58 C300,96 320,104 360,96
-                 C400,88 420,52 445,44 C465,38 485,40 505,64 C540,104 560,96 600,92"
-              fill="none" stroke="var(--hot)" stroke-width="2.6"/>
-        <circle cx="222" cy="42" r="4" fill="var(--hot)"/>
-        <text x="40" y="205" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">seconds into trip →</text>
-      </svg>
-    </figure>
-    <dl class="read">
-      <dt>X axis</dt><dd>seconds into the trip</dd>
-      <dt>Y axis</dt><dd>cell temperature (°C)</dd>
-      <dt>Outlier</dt><dd>a curve whose <em>shape</em> breaks from the ribbon — recurring spikes past 55&nbsp;°C</dd>
-    </dl>
-    <div class="tab-lim"><b>Why aggregation kills it:</b> a percentile band (median ± p95) is the
-      only way a summarized tool can draw this many curves. The band shows the fleet is fine and
-      erases the one curve that isn't — the spike is a rounding error inside the p95 envelope.</div>
-  </div>
-
-  <!-- CARD B -->
-  <div class="plot-card">
-    <div class="tag">VIEW B · state domain</div>
-    <h3>Raw-sample density — temperature against state of charge</h3>
-    <p>Forget time; ask instead <em>at what battery state does the heat appear?</em> Every raw
-      sample is dropped into a fine grid of (state-of-charge × temperature) and colored by how many
-      samples land there. The fleet forms one dense, glowing cloud — normal operation. An outlier
-      is a <em>faint smear of hot pixels floating above the cloud</em>, in a region of the state
-      space no healthy pack should ever visit.</p>
-    <figure>
-      <svg viewBox="0 0 640 220" role="img" aria-label="A dense density cloud of normal samples with faint hot outlier pixels above a threshold line">
-        <defs>
-          <radialGradient id="cloud" cx="45%" cy="70%" r="60%">
-            <stop offset="0%" stop-color="var(--cool)" stop-opacity="0.9"/>
-            <stop offset="55%" stop-color="var(--cool)" stop-opacity="0.35"/>
-            <stop offset="100%" stop-color="var(--cool)" stop-opacity="0"/>
-          </radialGradient>
-        </defs>
-        <line x1="40" y1="78" x2="600" y2="78" stroke="var(--hot)" stroke-width="1" stroke-dasharray="4 4"/>
-        <text x="596" y="71" text-anchor="end" font-family="IBM Plex Mono" font-size="11" fill="var(--hot)">55 °C</text>
-        <ellipse cx="300" cy="150" rx="240" ry="52" fill="url(#cloud)"/>
-        <!-- faint hot outlier pixels -->
-        <g fill="var(--hot)">
-          <rect x="150" y="52" width="7" height="7" opacity="0.75"/>
-          <rect x="176" y="60" width="7" height="7" opacity="0.5"/>
-          <rect x="140" y="66" width="7" height="7" opacity="0.6"/>
-          <rect x="196" y="48" width="7" height="7" opacity="0.4"/>
-        </g>
-        <text x="40" y="205" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">state of charge % →</text>
-      </svg>
-    </figure>
-    <dl class="read">
-      <dt>X axis</dt><dd>state of charge (%)</dd>
-      <dt>Y axis</dt><dd>cell temperature (°C)</dd>
-      <dt>Color</dt><dd>log density of raw samples — how common that combination is</dd>
-      <dt>Outlier</dt><dd>faint hot cells in empty state-space above the main cloud</dd>
-    </dl>
-    <div class="tab-lim"><b>Why aggregation kills it:</b> a coarse hexbin — the summarized version —
-      pools those four faint pixels into a big bin dominated by thousands of normal neighbors. The
-      outlier is averaged into invisibility before it ever reaches the screen.</div>
-  </div>
-
-  <!-- CARD C -->
-  <div class="plot-card">
-    <div class="tag">VIEW C · load domain</div>
-    <h3>Phase portrait — temperature against pack current</h3>
-    <p>The most physical view. Plot temperature against the current flowing in or out of the pack,
-      and each drive-and-charge cycle traces a <em>loop</em>: heat rises under load, falls when the
-      load eases. A healthy pack's loops are tight and cool. A failing pack's loop <em>bulges
-      upward</em> — the same current produces far more heat, the signature of rising internal
-      resistance in an aging or damaged cell.</p>
-    <figure>
-      <svg viewBox="0 0 640 220" role="img" aria-label="Tight cool current-temperature loops with one bulging hot loop crossing the threshold">
-        <line x1="40" y1="66" x2="600" y2="66" stroke="var(--hot)" stroke-width="1" stroke-dasharray="4 4"/>
-        <text x="596" y="59" text-anchor="end" font-family="IBM Plex Mono" font-size="11" fill="var(--hot)">55 °C</text>
-        <!-- healthy tight loops -->
-        <g fill="none" stroke="var(--slate)" stroke-width="1.6" opacity="0.5">
-          <ellipse cx="230" cy="150" rx="120" ry="26"/>
-          <ellipse cx="230" cy="150" rx="96" ry="20"/>
-          <ellipse cx="230" cy="150" rx="140" ry="32"/>
-        </g>
-        <!-- outlier bulging loop -->
-        <path d="M120,150 C120,110 180,52 300,50 C420,48 470,96 470,120
-                 C470,150 420,168 300,168 C200,168 120,166 120,150 Z"
-              fill="none" stroke="var(--hot)" stroke-width="2.6"/>
-        <circle cx="300" cy="50" r="4" fill="var(--hot)"/>
-        <text x="40" y="205" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">pack current (A) · negative = discharge →</text>
-      </svg>
-    </figure>
-    <dl class="read">
-      <dt>X axis</dt><dd>pack current (A) — negative under discharge</dd>
-      <dt>Y axis</dt><dd>cell temperature (°C)</dd>
-      <dt>Outlier</dt><dd>a loop that bulges hot — excess heat per amp, i.e. rising resistance</dd>
-    </dl>
-    <div class="tab-lim"><b>Why aggregation kills it:</b> a loop is an ordered path through
-      thousands of raw points. Summarize the points and the path — the very thing that carries the
-      diagnosis — is gone. There is no "average" of a trajectory.</div>
-  </div>
-</section>
-
-<section>
-  <div class="eyebrow">What it means for the battery</div>
-  <h2>An outlier is a physical story, not a red dot</h2>
-  <p class="sub">Each way a pack leaves the healthy population points to a specific failure mode.
-    Reading the outlier is reading the battery.</p>
-
-  <div class="mean">
-    <div class="cell">
-      <h4><span class="dot" style="background:var(--hot)"></span>Recurring thermal spikes</h4>
-      <p>A weak or high-resistance cell dumps heat under load. Repeated excursions past 55&nbsp;°C
-        accelerate electrolyte breakdown and SEI growth — permanent capacity loss, and a runaway
-        risk if it compounds.</p>
-    </div>
-    <div class="cell">
-      <h4><span class="dot" style="background:var(--warm)"></span>Heat at the wrong state of charge</h4>
-      <p>Getting hot near full charge or during fast charge, when a healthy pack stays cool, points
-        to lithium plating or a failing cooling loop — both irreversible and both safety-relevant.</p>
-    </div>
-    <div class="cell">
-      <h4><span class="dot" style="background:var(--cool)"></span>A bulging phase loop</h4>
-      <p>More heat per amp means internal resistance is climbing. That is the fingerprint of an
-        aging cell and the leading indicator of end-of-life — the warranty-cost signal.</p>
-    </div>
-    <div class="cell">
-      <h4><span class="dot" style="background:var(--slate)"></span>Depressed cell voltage</h4>
-      <p>The hot cars in the fleet also sag ~50&nbsp;mV lower under load. Heat and voltage sag
-        together confirm a genuine cell defect rather than a stray sensor glitch.</p>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="eyebrow">Why it matters for the fleet</div>
-  <h2>Catch the hot pack before it becomes a failure</h2>
-  <p class="sub">For an EV battery, a repeating thermal excursion is not a curiosity — it is the
-    early signature of accelerated aging, capacity loss, and, at the extreme, a safety event. Finding
-    the pack while it is still just an outlier is the whole point.</p>
-
-  <p>Across a fleet of thousands of vehicles, that outlier is a fraction of a percent of the data,
-    and it only exists at the raw sample grain. The Fleet EV Battery — Field-Quality Monitor is built
-    to reach it: hold every raw cell-temperature sample in the lakehouse, show the whole fleet at full
-    resolution, brush the suspect region, and drill to one vehicle's raw trace on demand.</p>
-
-  <p class="callout">The answer to "which pack is failing, and why" lives in the raw signal, not in
-    any summary. Keeping that signal reachable — fast, on demand, at fleet scale — is the capability
-    this dashboard demonstrates.</p>
-</section>
-
-<footer class="wrap">
-  Fleet EV Battery — Field-Quality Monitor · figures drawn from the 200-car / 21.6&nbsp;M-sample demo dataset ·
-  cell-temperature risk threshold set at 55&nbsp;°C for illustration.
-</footer>
-</div>
-</div>
-<div class="panel-doc" id="tab-workflow">
-<header>
-  <div class="hero">
-    <div class="eyebrow">Fleet EV battery · field-quality dashboard</div>
-    <h1>Reading the fleet, down to one cell</h1>
-    <p class="lede">The Fleet EV Battery — Field-Quality Monitor finds the one pack, among hundreds,
-      that runs too hot. This page first explains the battery and what the plots reveal about it,
-      then walks the three-step drill from the whole fleet down to a single vehicle’s raw signal —
-      and why each step is hard or impossible in the classic BI tools.</p>
-  </div>
-</header>
-<div class="wrap">
-
-
-<section>
-  <div class="eyebrow">The product · Fleet EV Battery — Field-Quality Monitor</div>
-  <h2>What the plots are telling you about the pack</h2>
-  <p class="sub">This dashboard monitors the health of the traction batteries in a fleet of electric
-    vehicles in the field. Each pack streams the temperature of its hottest cell, ten times a second.
-    The job is to find the individual pack that runs hotter than it should — a physical failure inside
-    the battery. Here is what the pack is, where the number comes from, and what has gone wrong in the
-    cell that runs hot.</p>
-
-  <!-- DRAWING 1: pack -> module -> cell anatomy -->
+  <div class="eyebrow">What happened to the battery</div>
+  <h2>Reading the outlier is reading a physical failure</h2>
+  <p class="sub">The signal is cell temperature, so a hot outlier is a defect you can name. Here is the
+    pack, where the number comes from, and what has gone wrong in the cell that runs hot.</p>
+<!-- DRAWING 1: pack -> module -> cell anatomy -->
   <div class="draw">
     <h3>1 · Where the number comes from — pack → module → cell</h3>
     <figure>
@@ -643,138 +452,142 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
       load</b> — the density map (Step 1) places it high on the temperature axis even where healthy cars
       sit cool, because the heat comes from the defect, not from how hard the car is being driven.</div>
   </div>
+
 </section>
 
 <section>
-  <div class="eyebrow">The workflow</div>
-  <h2>Three plots, three altitudes</h2>
-  <p class="sub">You descend from the aggregate to the individual. Each step narrows the question
-    and increases the resolution of the data you are looking at.</p>
-
-  <!-- STEP 1 -->
-  <div class="step">
-    <div class="n">1</div>
-    <div>
-      <h3>The aggregated picture — a density map of the whole fleet</h3>
-      <p class="what">plot: 2D histogram · X = state of charge · Y = cell temperature · color = log(sample count)</p>
-      <p>Every raw sample from every vehicle — millions of points — is dropped into a fine grid of
-        (state-of-charge × temperature) and colored by how many samples land in each cell. The fleet
-        forms one dense, glowing cloud: normal operation. The eye is drawn to what is <em>not</em> in
-        the cloud — faint hot cells floating above it, where a few packs reached temperatures no
-        healthy battery should at that charge state. This is the full-resolution view: nothing is
-        averaged, so a rare outlier still leaves its mark.</p>
-      <figure>
-        <svg viewBox="0 0 700 200" role="img" aria-label="Density cloud of normal samples with faint hot outlier cells above a threshold line">
-          <defs><radialGradient id="cl" cx="42%" cy="72%" r="60%">
-            <stop offset="0%" stop-color="var(--cool)" stop-opacity="0.9"/>
-            <stop offset="55%" stop-color="var(--cool)" stop-opacity="0.32"/>
-            <stop offset="100%" stop-color="var(--cool)" stop-opacity="0"/></radialGradient></defs>
-          <line x1="44" y1="66" x2="660" y2="66" stroke="var(--hot)" stroke-width="1" stroke-dasharray="4 4"/>
-          <text x="656" y="59" text-anchor="end" font-family="IBM Plex Mono" font-size="11" fill="var(--hot)">55 °C risk line</text>
-          <ellipse cx="330" cy="140" rx="270" ry="46" fill="url(#cl)"/>
-          <g fill="var(--hot)"><rect x="150" y="40" width="7" height="7" opacity=".75"/>
-            <rect x="180" y="48" width="7" height="7" opacity=".5"/><rect x="138" y="54" width="7" height="7" opacity=".6"/>
-            <rect x="205" y="36" width="7" height="7" opacity=".4"/></g>
-          <text x="44" y="190" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">state of charge % →</text>
-        </svg>
-        <div class="cap">Drag a rectangle (a “lasso”) around the faint hot cells to select the suspect region.</div>
-      </figure>
-    </div>
-  </div>
-  <div class="flow-conn"></div>
-
-  <!-- STEP 2 -->
-  <div class="step">
-    <div class="n">2</div>
-    <div>
-      <h3>The sampled suspects — raw curves, overlaid</h3>
-      <p class="what">control: sample-size slider (default 30) · plot: cell temp vs time, one raw line per vehicle · table: forensic detail</p>
-      <p>The rectangle you drew is turned into a query. Rather than pull every vehicle in the region
-        (there may be hundreds), a <strong>sample-size slider</strong> takes the <em>N hottest</em> of
-        them — 30 by default — and fetches their <em>raw</em> temperature-vs-time traces from the
-        lakehouse on demand. Overlaid, the healthy curves sit low and flat; a failing pack’s line
-        peels upward in repeating spikes. Beside the plot, a <strong>table</strong> lists each sampled
-        vehicle with its peak temperature, seconds spent hot, mileage, and lowest voltage — sortable
-        evidence, worst first.</p>
-      <figure>
-        <svg viewBox="0 0 700 200" role="img" aria-label="Several flat healthy temperature curves with one spiking outlier curve over a threshold">
-          <line x1="44" y1="62" x2="660" y2="62" stroke="var(--hot)" stroke-width="1" stroke-dasharray="4 4"/>
-          <text x="656" y="55" text-anchor="end" font-family="IBM Plex Mono" font-size="11" fill="var(--hot)">55 °C</text>
-          <g fill="none" stroke="var(--slate)" stroke-width="1.8" opacity=".4">
-            <path d="M44,150 C200,142 420,124 660,116"/><path d="M44,158 C200,150 420,132 660,124"/>
-            <path d="M44,144 C200,136 420,116 660,108"/></g>
-          <path d="M44,150 C150,138 190,120 220,54 C240,26 262,26 282,54 C315,96 336,104 380,96
-                   C430,86 452,50 478,42 C500,36 522,40 542,64 C580,104 610,96 660,92"
-                fill="none" stroke="var(--hot)" stroke-width="2.6"/>
-          <text x="44" y="190" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">seconds into trip →</text>
-        </svg>
-        <div class="cap">The slider trades breadth for speed: more vehicles = more raw curves fetched and overlaid.</div>
-      </figure>
-    </div>
-  </div>
-  <div class="flow-conn"></div>
-
-  <!-- STEP 3 -->
-  <div class="step">
-    <div class="n">3</div>
-    <div>
-      <h3>One vehicle, in full — the detailed line plot</h3>
-      <p class="what">action: click a table row · plot: that vehicle’s complete raw signal at full 10 Hz</p>
-      <p>Click a row in the suspects table and the dashboard fetches <em>every raw sample</em> for that
-        one vehicle — a hundred thousand points — and draws its full-resolution trace. This is the
-        forensic close-up: the exact shape of each thermal excursion, when it happened, how long it
-        lasted, how the pack recovered. It is the evidence you would attach to a warranty claim or a
-        field-quality report, and it exists only because the raw signal was never thrown away.</p>
-      <figure>
-        <svg viewBox="0 0 700 200" role="img" aria-label="One vehicle's detailed raw trace with several sharp thermal spikes crossing the threshold">
-          <line x1="44" y1="60" x2="660" y2="60" stroke="var(--hot)" stroke-width="1" stroke-dasharray="4 4"/>
-          <text x="656" y="53" text-anchor="end" font-family="IBM Plex Mono" font-size="11" fill="var(--hot)">55 °C</text>
-          <path d="M44,150 L120,148 L150,150 L170,58 L188,150 L300,148 L320,44 L340,150 L470,149
-                   L492,52 L512,150 L600,149 L620,66 L640,150 L660,150"
-                fill="none" stroke="var(--hot)" stroke-width="2"/>
-          <text x="44" y="190" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">time (full 10 Hz) →</text>
-        </svg>
-        <div class="cap">~100,000 raw points for a single vehicle — the true incident, not a summary of it.</div>
-      </figure>
-    </div>
-  </div>
+  <div class="eyebrow">What comes next</div>
+  <h2>From the fault to finding it</h2>
+  <p class="sub">The outlier is real, physical, and rare — a fraction of a percent of the data, alive
+    only at the raw sample grain. The next tab, <strong>App Workflow</strong>, shows how the dashboard
+    lets you find it: from the whole fleet, down to the one vehicle, without ever averaging the signal
+    away.</p>
 </section>
-
-<section>
-  <div class="eyebrow">The constraint that shapes everything</div>
-  <h2>Why the raw signal has to stay raw</h2>
-  <p class="sub">The fault is a rare, seconds-long deviation. Averaging — over time, over cells, over
-    the fleet — is exactly what erases it. So the analysis must reach the raw signal at every step,
-    fast, at fleet scale. That single requirement is where the classic BI tools struggle.</p>
-  <p class="callout">A BI tool that must load a resident extract or in-memory model, and can only
-    render a few thousand marks, is structurally the wrong shape for “find the individual outlier in
-    a billion raw points.” It has to summarize to stay responsive — and the summary is where the
-    outlier dies.</p>
-</section>
-<footer class="wrap">
-  Fleet ECU field-quality demo · workflow &amp; tooling comparison. Reaction-time figures are
-  illustrative for a hundreds-of-vehicles, billions-of-samples fleet; BI-tool point-limit and
-  extract behaviors are as generally documented and may vary by version, connector, and configuration.
-</footer>
 </div>
 </div>
-<div class="panel-doc" id="tab-tools">
+<div class="panel-doc" id="tab-workflow">
 <header>
   <div class="hero">
-    <div class="eyebrow">Fleet EV Battery — Field-Quality Monitor</div>
-    <h1>What the classic BI tools can and can’t do</h1>
-    <p class="lede">The same three-step workflow, taken step by step in Tableau, Power BI and Qlik —
-      one short, traceable line per tool — and how reaction time behaves on mass data with hundreds of vehicles.</p>
+    <div class="eyebrow">Fleet EV Battery · field-quality monitor</div>
+    <h1>How the dashboard works</h1>
+    <p class="lede">The screen reads top to bottom, and so does the investigation. You descend from a
+      picture of the whole fleet, to a sampled group of suspects, to the raw signal of one vehicle —
+      the raw data always within reach, never summarized away.</p>
   </div>
 </header>
 
 <div class="wrap">
 <section>
-  <div class="eyebrow">Tool by tool, step by step</div>
-  <h2>The same three steps in Tableau, Power BI and Qlik</h2>
-  <p class="sub">All three are strong BI tools. The gap here is narrow and specific. We take each
-    workflow step in turn. For each tool, one short line says what happens and why — traceable back
-    to how that tool is built.</p>
+  <div class="eyebrow">The app, top to bottom</div>
+  <h2>Three plots, three altitudes</h2>
+  <p class="sub">Each step down the screen increases the resolution of the data and narrows the
+    question. This is the exact top-to-bottom layout of the dashboard.</p>
+
+  <div class="applayout">
+    <div class="lyr">
+      <div class="tag2">TOP · header</div>
+      <h4>Fleet at a glance</h4>
+      <p>Live counters show the size of what you are looking at.</p>
+      <div class="pillrow"><span>200 vehicles</span><span>21.6M raw samples</span><span>3 days</span><span>30 running hot</span></div>
+    </div>
+    <div class="down">↓</div>
+    <div class="lyr">
+      <div class="tag2">UPPER PLOT · the aggregated picture</div>
+      <h4>Raw-sample density — state of charge × cell temperature</h4>
+      <p>Every raw sample from every vehicle is binned into a fine grid and colored by count. The fleet
+        is one dense cloud; the eye goes to the faint hot cells floating above it — packs that reached
+        temperatures no healthy battery should at that charge state. Nothing is averaged, so a rare
+        outlier still leaves its mark. A <b>sample-size slider</b> (default 30) sets how many vehicles
+        the next step will pull.</p>
+    </div>
+    <div class="down">↓ &nbsp; box-select (lasso) the hot region</div>
+    <div class="lyr">
+      <div class="tag2">MIDDLE PLOT + TABLE · the sampled suspects</div>
+      <h4>Overlaid raw curves + a forensic table</h4>
+      <p>The rectangle becomes a query. It takes the <em>N hottest</em> vehicles in the region and
+        fetches their <b>raw</b> temperature-vs-time traces on demand — overlaid, the failing pack’s
+        line peels upward in repeating spikes. Beside them, a table lists each sampled vehicle with its
+        peak temperature, seconds spent hot, mileage and lowest voltage — sortable evidence, worst first.</p>
+    </div>
+    <div class="down">↓ &nbsp; click a row in the table</div>
+    <div class="lyr">
+      <div class="tag2">BOTTOM PLOT · one vehicle in full</div>
+      <h4>That vehicle’s complete raw signal</h4>
+      <p>Click a suspect and the dashboard fetches <em>every raw sample</em> for that one vehicle — a
+        hundred thousand points — and draws its full-resolution trace: the exact shape of each thermal
+        excursion, when it happened, how long it lasted, how the pack recovered. This is the evidence
+        for a warranty claim or a field-quality report.</p>
+    </div>
+  </div>
+  <p>At no point is the raw signal thrown away. That is what makes the outlier findable — and, as the
+    next tab explains, it is exactly what a resident-extract BI tool cannot do at fleet scale.</p>
+</section>
+</div>
+</div>
+<div class="panel-doc" id="tab-tools">
+<header>
+  <div class="hero">
+    <div class="eyebrow">Fleet EV Battery · field-quality monitor</div>
+    <h1>Why this only works on Databricks&nbsp;Apps</h1>
+    <p class="lede">The workflow depends on two things at once: showing a full-resolution picture of
+      hundreds of millions of raw samples, and fetching the raw rows behind any selection on demand.
+      That combination is outside the model of the classic BI tools. Here is the argument, step by
+      step, then the reason it holds.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section>
+  <div class="eyebrow">The root difference</div>
+  <h2>Where the data lives decides what the tool can do</h2>
+  <p class="sub">Tableau, Power BI and Qlik are all excellent BI tools. But each keeps granular data
+    <em>resident</em> — a Hyper extract, an imported model, an in-memory table — and each can only
+    render a few thousand marks on a chart. The Databricks App keeps the data in the lakehouse and
+    fetches only what each step needs.</p>
+  <figure class="drawfig">
+    <svg viewBox="0 0 720 210" role="img" aria-label="Classic BI tools load a resident copy of the data and render a capped number of marks; the Databricks App queries the lakehouse and fetches only what each step needs">
+      <!-- BI side -->
+      <text x="170" y="24" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--hot)">CLASSIC BI TOOL</text>
+      <rect x="40" y="40" width="120" height="46" rx="6" fill="none" stroke="currentColor" stroke-width="1.3"/>
+      <text x="100" y="68" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="currentColor">lakehouse</text>
+      <line x1="160" y1="63" x2="215" y2="63" stroke="var(--hot)" stroke-width="1.5" marker-end="url(#a1)"/>
+      <text x="188" y="55" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--hot)">big load</text>
+      <rect x="218" y="40" width="120" height="46" rx="6" fill="none" stroke="var(--hot)" stroke-width="1.6"/>
+      <text x="278" y="62" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--hot)">resident copy</text>
+      <text x="278" y="77" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="var(--slate)">extract / model</text>
+      <line x1="278" y1="90" x2="278" y2="120" stroke="currentColor" stroke-width="1.3" marker-end="url(#a1)"/>
+      <rect x="218" y="124" width="120" height="40" rx="6" fill="none" stroke="currentColor" stroke-width="1.3"/>
+      <text x="278" y="148" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="currentColor">~few k marks</text>
+      <text x="278" y="184" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--hot)">must summarize to fit</text>
+      <!-- App side -->
+      <text x="545" y="24" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--ok)">DATABRICKS APP</text>
+      <rect x="415" y="40" width="120" height="46" rx="6" fill="none" stroke="currentColor" stroke-width="1.3"/>
+      <text x="475" y="62" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="currentColor">lakehouse</text>
+      <text x="475" y="77" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="var(--slate)">all raw stays here</text>
+      <line x1="535" y1="55" x2="600" y2="55" stroke="var(--ok)" stroke-width="1.5" marker-end="url(#a2)"/>
+      <text x="567" y="47" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--ok)">bounded query</text>
+      <line x1="600" y1="72" x2="535" y2="72" stroke="var(--ok)" stroke-width="1.5" marker-end="url(#a2b)"/>
+      <text x="567" y="86" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--ok)">only rows needed</text>
+      <rect x="603" y="40" width="96" height="80" rx="6" fill="none" stroke="var(--ok)" stroke-width="1.6"/>
+      <text x="651" y="76" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--ok)">browser</text>
+      <text x="651" y="92" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="var(--slate)">holds ~nothing</text>
+      <text x="545" y="150" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--ok)">full-res aggregate + raw on demand</text>
+      <defs>
+        <marker id="a1" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0,0 9,4.5 0,9" fill="var(--hot)"/></marker>
+        <marker id="a2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0,0 9,4.5 0,9" fill="var(--ok)"/></marker>
+        <marker id="a2b" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0,0 9,4.5 0,9" fill="var(--ok)"/></marker>
+      </defs>
+    </svg>
+    <figcaption>A BI tool front-loads a resident copy and renders a capped number of marks, so it must
+      summarize. The App leaves the raw data in the lakehouse and each interaction is a bounded query.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <div class="eyebrow">Step by step</div>
+  <h2>Each step, in Tableau, Power BI and Qlik</h2>
+  <p class="sub">Take the app’s three steps in turn. One short, traceable line per tool.</p>
 
   <div class="legend">
     <span><i style="background:var(--ok)"></i> works</span>
@@ -782,10 +595,7 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
     <span><i style="background:var(--hot)"></i> not possible cleanly</span>
   </div>
 
-  <!-- STEP 1 -->
-  <div class="cmp-step">
-    <p class="h">Step 1</p>
-    <h3>Show the full-resolution density of every raw sample</h3>
+  <div class="cmp-step"><p class="h">Step 1</p><h3>Show the full-resolution density of every raw sample</h3>
     <div class="cmp">
       <div class="r app yes"><span class="tn">Databricks App</span><span class="mk">✓</span><p>Bins every raw sample in the lakehouse. The outlier cell is drawn.</p></div>
       <div class="r no"><span class="tn">Tableau</span><span class="mk">✕</span><p>Bins into a coarse hexbin to stay fast. The lone hot cell is pooled away.</p></div>
@@ -794,10 +604,7 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
     </div>
   </div>
 
-  <!-- STEP 2a -->
-  <div class="cmp-step">
-    <p class="h">Step 2 · the lasso</p>
-    <h3>Turn the rectangle into a fetch of raw rows from the source</h3>
+  <div class="cmp-step"><p class="h">Step 2 · the lasso</p><h3>Turn the rectangle into a fetch of raw rows from the source</h3>
     <div class="cmp">
       <div class="r app yes"><span class="tn">Databricks App</span><span class="mk">✓</span><p>The box becomes a <span class="mono">WHERE</span> query. It pulls raw rows on demand.</p></div>
       <div class="r part"><span class="tn">Tableau</span><span class="mk">~</span><p>The lasso only selects marks already in the extract. It cannot fetch new raw rows.</p></div>
@@ -806,10 +613,7 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
     </div>
   </div>
 
-  <!-- STEP 2b -->
-  <div class="cmp-step">
-    <p class="h">Step 2 · the overlay</p>
-    <h3>Overlay the sampled vehicles’ raw curves, one line each</h3>
+  <div class="cmp-step"><p class="h">Step 2 · the overlay</p><h3>Overlay the sampled vehicles’ raw curves, one line each</h3>
     <div class="cmp">
       <div class="r app yes"><span class="tn">Databricks App</span><span class="mk">✓</span><p>Draws each sampled vehicle’s raw trace. The failing curve’s shape is visible.</p></div>
       <div class="r no"><span class="tn">Tableau</span><span class="mk">✕</span><p>Too many marks. It falls back to a percentile band. The individual shape is lost.</p></div>
@@ -818,10 +622,7 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
     </div>
   </div>
 
-  <!-- STEP 3 -->
-  <div class="cmp-step">
-    <p class="h">Step 3</p>
-    <h3>Drill to one vehicle’s full 10 Hz raw trace (~100k points)</h3>
+  <div class="cmp-step"><p class="h">Step 3</p><h3>Drill to one vehicle’s full 10 Hz raw trace (~100k points)</h3>
     <div class="cmp">
       <div class="r app yes"><span class="tn">Databricks App</span><span class="mk">✓</span><p>Fetches that one vehicle’s every raw point on click. Nothing pre-loaded.</p></div>
       <div class="r part"><span class="tn">Tableau</span><span class="mk">~</span><p>Works only if those rows were extracted up front. The extract then balloons.</p></div>
@@ -829,21 +630,12 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
       <div class="r part"><span class="tn">Qlik</span><span class="mk">~</span><p>The raw points must be in the in-memory model first, and the chart still caps them.</p></div>
     </div>
   </div>
-
-  <p style="margin-top:26px"><strong>The one root cause.</strong> Tableau, Power BI and Qlik all keep
-    granular data <em>resident</em> — a Hyper extract, an imported model, an in-memory table — and can
-    render only a few thousand marks. So they must summarize to stay fast, and their lasso works over
-    what is already loaded. The App keeps the data in the lakehouse: it renders a full-resolution
-    aggregate, and every lasso is a fresh bounded query that fetches only the raw rows that step needs.</p>
 </section>
 
 <section>
   <div class="eyebrow">Reaction time on mass data</div>
   <h2>Hundreds of vehicles, billions of raw points</h2>
-  <p class="sub">Where the data lives decides how the tool behaves as the fleet grows. The classic
-    BI tools front-load the cost into a big load/refresh and keep granular data resident; the App
-    keeps compute in the lakehouse and moves only what each step needs.</p>
-
+  <p class="sub">Where the data lives also decides how the tool behaves as the fleet grows.</p>
   <div class="rt">
     <div class="row head"><span>Tool</span><span>Initial load / first interactive view</span><span>time</span></div>
     <div class="row"><span class="tool-name">Databricks App</span><div class="bar fast"><span style="width:14%"></span></div><span class="t">~2 s</span></div>
@@ -854,33 +646,34 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
   <div class="rtnote">Illustrative, for a fleet in the hundreds of vehicles / billions of raw samples.
     BI figures reflect building and loading a resident extract / in-memory model (or a slow DirectQuery
     round-trip) plus the first render; the App figure is a pre-materialized aggregate served from the warehouse.</div>
-
-  <div class="rt">
-    <div class="row head"><span>Tool</span><span>Each interaction (lasso, re-filter, drill)</span><span>time</span></div>
-    <div class="row"><span class="tool-name">Databricks App</span><div class="bar fast"><span style="width:20%"></span></div><span class="t">~1–5 s</span></div>
-    <div class="row"><span class="tool-name">Tableau</span><div class="bar slow"><span style="width:100%"></span></div><span class="t">re-query extract + LOD passes</span></div>
-    <div class="row"><span class="tool-name">Power BI</span><div class="bar mid"><span style="width:60%"></span></div><span class="t">model re-scan / DQ round-trip</span></div>
-    <div class="row"><span class="tool-name">Qlik</span><div class="bar mid"><span style="width:55%"></span></div><span class="t">in-memory recompute</span></div>
-  </div>
-
-  <p style="margin-top:22px"><strong>Why the App stays flat as the fleet grows.</strong> Its
-    overview reads a small pre-computed aggregate, and each lasso is a <em>bounded</em> pushdown query
-    — it touches only the sampled vehicles’ rows (helped by clustering the raw table on vehicle id),
-    never the whole dataset. Add ten times the vehicles and the interaction cost barely moves, because
-    the query is always bounded and the full data never travels to the client.</p>
-
-  <p><strong>Why the BI tools degrade.</strong> Their responsiveness depends on holding granular data
-    resident. As the fleet grows the extract / in-memory model grows with it: the initial load and
-    every refresh get slower, memory pressure rises, and to keep interactions bearable the tool
-    summarizes harder — which, for outlier work, is the one thing you cannot afford. DirectQuery
-    trades the big load for a per-interaction round-trip to the source, moving the latency into every
-    click instead of removing it.</p>
+  <p style="margin-top:22px"><strong>Why the App stays flat as the fleet grows.</strong> Its overview
+    reads a small pre-computed aggregate, and each lasso is a <em>bounded</em> pushdown query — it
+    touches only the sampled vehicles’ rows (helped by clustering the raw table on vehicle id), never
+    the whole dataset. Ten times the vehicles barely moves the interaction cost. <strong>Why the BI
+    tools degrade:</strong> their speed depends on holding granular data resident, so as the fleet
+    grows the extract / model grows, the load and every refresh slow down, and to stay responsive the
+    tool summarizes harder — the one thing outlier work cannot afford.</p>
 </section>
-<footer class="wrap">
-  Fleet ECU field-quality demo · workflow &amp; tooling comparison. Reaction-time figures are
-  illustrative for a hundreds-of-vehicles, billions-of-samples fleet; BI-tool point-limit and
-  extract behaviors are as generally documented and may vary by version, connector, and configuration.
-</footer>
+
+<section>
+  <div class="eyebrow">The conclusion</div>
+  <h2>Why it can only be the Databricks App</h2>
+  <p class="sub">Line the two requirements up against the one architectural fact and the answer falls out.</p>
+  <p>The workflow needs, at the same time: <strong>(1)</strong> a full-resolution view of hundreds of
+    millions of raw samples — no sampling, no coarse bins, or the outlier disappears; and
+    <strong>(2)</strong> the raw rows behind any brushed region, fetched on demand — because the
+    diagnosis lives in the raw shape, not a summary.</p>
+  <p>Tableau, Power BI and Qlik can each do neither at fleet scale, for the same root reason: they
+    render from a <em>resident copy</em> and cap the marks they draw, so they must summarize to stay
+    responsive, and their selection works only over what is already loaded. Turning up the data makes
+    both problems worse.</p>
+  <p class="verdict">The Databricks App inverts that. The raw data <b>never leaves the lakehouse</b>:
+    the overview is a full-resolution aggregate computed there, and every lasso is a fresh
+    <b>bounded query</b> that fetches only the rows that step needs — the density grid, then the
+    sampled vehicles’ raw traces, then one vehicle’s full signal. Nothing large is ever resident, so
+    it renders the outlier <b>and</b> reaches the raw detail, and it stays fast as the fleet grows.
+    That is why the workflow is native to a Databricks App and not to a resident-extract BI tool.</p>
+</section>
 </div>
 </div>
 <script>
