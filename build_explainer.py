@@ -295,23 +295,29 @@ tab2 = '''<div class="panel-doc" id="tab-tools">
             <td>Published <b>Hyper extract</b> on the server; scheduled refresh.
               <span class="why">Bottleneck: at raw grain the extract is the size of the raw data (GB–TB) and refreshes scale with it; drop to a summary extract and the outlier is gone.</span></td>
             <td><b>Live connection</b>: each interaction queries the source; no copy held.
-              <span class="why">Bottleneck: the viz still caps marks, so Tableau makes the query aggregate before it draws — plus a round-trip per interaction.</span></td></tr>
+              <span class="why">Bottleneck: the viz still caps marks, so Tableau makes the query aggregate before it draws — plus a round-trip per interaction.</span>
+              <span class="why">Also: it is not one query. VizQL emits one or more SQL statements per worksheet, so a dashboard fans out into many — Databricks’ own guidance notes one filter on a five-chart dashboard fires at least ten queries at once, and COUNTD / LOD / high-cardinality filters compile to expensive DISTINCT and subquery patterns. Each runs fast on the warehouse; the volume and shape are the wall.</span></td></tr>
         <tr><td class="tl">Power BI Service</td>
             <td><b>Import</b> model in the capacity’s in-memory VertiPaq engine; scheduled refresh.
               <span class="why">Bottleneck: raw grain must fit in capacity RAM and grows with the fleet; a pre-aggregated model fits but no longer contains the outlier.</span></td>
             <td><b>DirectQuery</b>: SQL sent to the source per interaction; no model held.
-              <span class="why">Bottleneck: the visual cap (~3.5k–10k marks) forces a GROUP BY / top-N before rendering — you get a summary, plus a round-trip per click.</span></td></tr>
+              <span class="why">Bottleneck: the visual cap (~3.5k–10k marks) forces a GROUP BY / top-N before rendering — you get a summary, plus a round-trip per click.</span>
+              <span class="why">Also: each visual fires one or more queries, so a page of visuals fires many, and every slicer or cross-filter re-issues them. DAX compiles to SQL at query time, so complex measures and DistinctCount produce subquery-heavy statements — Microsoft’s own DirectQuery guidance says to limit visuals per page and disable cross-highlighting for this reason. A five-visual tab has been seen generating over a hundred queries on Databricks SQL, each fast on its own.</span></td></tr>
         <tr><td class="tl">Qlik Sense Enterprise</td>
             <td>QVF <b>app loaded into the engine’s RAM</b> (tables + associative index); scheduled reload.
               <span class="why">Bottleneck: raw grain must fit in engine RAM and reload scales with it; summarize to fit and the outlier disappears.</span></td>
             <td><b>Direct Query / ODAG</b>: queries pushed to the source; not in the in-memory engine.
-              <span class="why">Bottleneck: the chart still caps marks so the pushed query is aggregated; ODAG only loads a chosen slice into memory first — a round-trip either way.</span></td></tr>
+              <span class="why">Bottleneck: the chart still caps marks so the pushed query is aggregated; ODAG only loads a chosen slice into memory first — a round-trip either way.</span>
+              <span class="why">Also: per Qlik’s own docs each chart object builds and sends its own SQL and every selection re-issues it, so a busy sheet fans out into many queries — COUNT(DISTINCT) compiles to correlated subqueries and high-cardinality filters to huge IN-lists that stress the warehouse. This is the live-mode cost only; Qlik’s default in-memory engine issues no per-interaction SQL at all.</span></td></tr>
       </tbody>
     </table>
     <p class="modes-note"><b>The through-line:</b> pre-load hits a size/refresh wall at raw grain (and
       DirectQuery removes only that); but in <em>every</em> cell the chart’s few-thousand-mark cap forces
       the data down to a summary before it’s drawn. <b>That rendering cap — not the resident copy — is
-      the mode-independent bottleneck</b>, and it is exactly what erases the outlier.</p>
+      the mode-independent bottleneck</b>, and it is exactly what erases the outlier. The <em>Also</em>
+      lines add the second live-mode cost: the tool generates the SQL, so a single dashboard fans out into
+      many queries and re-fires them on every interaction. The App writes its own queries — one per plot,
+      exactly what it needs.</p>
   </div>
 
   <p>The Databricks App does not hit that wall: it never renders raw points in the browser. It computes
