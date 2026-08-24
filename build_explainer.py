@@ -1,231 +1,9 @@
-<title>Fleet EV Battery — Field-Quality Monitor</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter+Tight:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<style>
-:root{
-  --ground:#F7F6F3; --panel:#FFFFFF; --ink:#1B2A30; --ink-soft:#4A5C63;
-  --slate:#7E939B; --line:#E3E0D9;
-  --cool:#3A7CA5; --warm:#E8B23A; --hot:#E5481F; --ok:#2F8F6B;
-  --shadow:0 1px 2px rgba(20,30,35,.05),0 8px 24px rgba(20,30,35,.05);
-  --maxw:760px;
-}
-:root:not([data-theme="light"]){
-  @media (prefers-color-scheme: dark){
-    --ground:#0F1518; --panel:#161F23; --ink:#E8EDEF; --ink-soft:#AEBEC4;
-    --slate:#7E939B; --line:#26343A;
-    --cool:#5FA8D3; --warm:#F0C25C; --hot:#FF6A45; --ok:#4FBF93;
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px rgba(0,0,0,.35);
-  }
-}
-:root[data-theme="dark"]{
-  --ground:#0F1518; --panel:#161F23; --ink:#E8EDEF; --ink-soft:#AEBEC4;
-  --slate:#7E939B; --line:#26343A;
-  --cool:#5FA8D3; --warm:#F0C25C; --hot:#FF6A45; --ok:#4FBF93;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px rgba(0,0,0,.35);
-}
-*{box-sizing:border-box}
-body{margin:0;background:var(--ground);color:var(--ink);
-  font-family:"Inter Tight",system-ui,sans-serif;line-height:1.6;
-  -webkit-font-smoothing:antialiased;font-size:17px}
-.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
-h1,h2,h3{font-family:"Fraunces",Georgia,serif;font-weight:500;line-height:1.14;text-wrap:balance;letter-spacing:-.01em}
-.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
-.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.18em;
-  text-transform:uppercase;color:var(--slate);font-weight:500}
+# -*- coding: utf-8 -*-
+wf_css = open("/tmp/wf_css.txt", encoding="utf-8").read()
+story_css = open("/tmp/story_css.txt", encoding="utf-8").read()
+drawings = open("/tmp/drawings.html", encoding="utf-8").read()  # DRAWING 1..3 inside a .draw block sequence
 
-header{border-bottom:1px solid var(--line)}
-.hero{max-width:var(--maxw);margin:0 auto;padding:72px 24px 40px}
-.hero h1{font-size:clamp(36px,6.5vw,60px);margin:16px 0 0}
-.hero .lede{font-size:20px;color:var(--ink-soft);margin:20px 0 0;max-width:60ch}
-
-section{padding:52px 0}
-section+section{border-top:1px solid var(--line)}
-h2{font-size:clamp(25px,4.2vw,34px);margin:0 0 8px}
-.sub{color:var(--ink-soft);font-size:18px;margin:0 0 28px;max-width:62ch}
-p{max-width:65ch} p a{color:var(--cool)} strong{font-weight:600}
-
-/* workflow steps */
-.step{display:grid;grid-template-columns:44px 1fr;gap:20px;margin:26px 0}
-.step .n{font-family:"Fraunces",serif;font-size:26px;color:var(--hot);
-  border:1px solid var(--line);border-radius:50%;width:44px;height:44px;
-  display:flex;align-items:center;justify-content:center;background:var(--panel)}
-.step h3{font-size:20px;margin:6px 0 6px}
-.step .what{font-size:14px;color:var(--slate);font-family:"IBM Plex Mono",monospace;margin:0 0 8px}
-.step p{margin:0 0 8px;font-size:16px}
-.step figure{margin:12px 0 0}
-.step svg{width:100%;height:auto;display:block;border-radius:10px;
-  background:color-mix(in srgb,var(--ground) 55%,var(--panel));border:1px solid var(--line)}
-.cap{font-size:12.5px;color:var(--slate);margin-top:8px}
-.flow-conn{grid-column:1;justify-self:center;width:1px;background:var(--line);height:20px;margin:-14px 0}
-
-.callout{border-left:3px solid var(--hot);padding:6px 0 6px 20px;margin:26px 0;font-size:19px}
-
-/* battery drawings */
-.draw{background:var(--panel);border:1px solid var(--line);border-radius:14px;
-  padding:22px 24px;margin:20px 0;box-shadow:var(--shadow)}
-.draw h3{font-size:19px;margin:0 0 4px}
-.draw svg{width:100%;height:auto;display:block;margin:8px 0 0}
-.draw figcaption{font-size:13px;color:var(--slate);margin-top:10px}
-.draw .reads{margin:14px 0 0;padding:12px 16px;border-radius:8px;font-size:14.5px;
-  background:color-mix(in srgb,var(--hot) 7%,var(--panel));
-  border:1px solid color-mix(in srgb,var(--hot) 22%,var(--line))}
-.draw .reads b{color:var(--hot)}
-
-/* step-by-step tool comparison */
-.cmp-step{margin:30px 0}
-.cmp-step .h{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.05em;
-  text-transform:uppercase;color:var(--cool);margin:0 0 2px}
-.cmp-step h3{font-size:19px;margin:0 0 12px}
-.cmp{border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.cmp .r{display:grid;grid-template-columns:104px 30px 1fr;gap:12px;align-items:baseline;
-  padding:11px 16px;background:var(--panel);font-size:14.5px}
-.cmp .r+.r{border-top:1px solid var(--line)}
-.cmp .r.app{background:color-mix(in srgb,var(--ok) 8%,var(--panel))}
-.cmp .tn{font-weight:600}
-.cmp .mk{font-family:"IBM Plex Mono",monospace;font-weight:600;text-align:center}
-.cmp .no .mk{color:var(--hot)} .cmp .part .mk{color:var(--warm)} .cmp .yes .mk{color:var(--ok)}
-.cmp .r p{margin:0;max-width:none}
-
-/* comparison */
-.tool{background:var(--panel);border:1px solid var(--line);border-radius:14px;
-  padding:22px 24px;margin:18px 0;box-shadow:var(--shadow)}
-.tool h3{font-size:20px;margin:0 0 2px;display:flex;align-items:center;gap:10px}
-.tool .arch{font-size:13px;color:var(--slate);margin:0 0 14px;font-style:italic}
-.tool ul{margin:0;padding:0;list-style:none}
-.tool li{display:grid;grid-template-columns:22px 1fr;gap:10px;padding:7px 0;font-size:15px;align-items:baseline}
-.tool li+li{border-top:1px solid var(--line)}
-.mk{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13px}
-.no .mk{color:var(--hot)} .part .mk{color:var(--warm)} .yes .mk{color:var(--ok)}
-.tool li b{font-weight:600}
-
-/* reaction time */
-.rt{display:grid;grid-template-columns:1fr;gap:0;margin:26px 0 8px;
-  border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.rt .row{display:grid;grid-template-columns:150px 1fr 96px;gap:14px;align-items:center;
-  padding:14px 18px;background:var(--panel)}
-.rt .row+.row{border-top:1px solid var(--line)}
-.rt .row.head{background:transparent;font-family:"IBM Plex Mono",monospace;font-size:11px;
-  letter-spacing:.05em;text-transform:uppercase;color:var(--slate);padding:10px 18px}
-.rt .tool-name{font-weight:600}
-.rt .bar{height:12px;border-radius:6px;background:var(--line);position:relative;overflow:hidden}
-.rt .bar span{position:absolute;inset:0 auto 0 0;border-radius:6px}
-.rt .t{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;text-align:right;font-size:14px}
-.fast span{background:var(--ok)} .mid span{background:var(--warm)} .slow span{background:var(--hot)}
-.rtnote{font-size:13px;color:var(--slate);margin-top:6px}
-
-.legend{display:flex;gap:20px;flex-wrap:wrap;font-size:13px;color:var(--ink-soft);margin:14px 0 0}
-.legend span{display:inline-flex;align-items:center;gap:6px}
-.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
-
-footer{border-top:1px solid var(--line);padding:38px 0 60px;color:var(--slate);font-size:13px}
-@media(max-width:600px){.rt .row{grid-template-columns:110px 1fr 70px}}
-
-
-:root{
-  --ground:#F7F6F3; --panel:#FFFFFF; --ink:#1B2A30; --ink-soft:#4A5C63;
-  --slate:#7E939B; --line:#E3E0D9;
-  --cool:#3A7CA5; --warm:#E8B23A; --hot:#E5481F;
-  --shadow:0 1px 2px rgba(20,30,35,.05),0 8px 24px rgba(20,30,35,.05);
-  --maxw:720px;
-}
-:root:not([data-theme="light"]){
-  @media (prefers-color-scheme: dark){
-    --ground:#0F1518; --panel:#161F23; --ink:#E8EDEF; --ink-soft:#AEBEC4;
-    --slate:#7E939B; --line:#26343A;
-    --cool:#5FA8D3; --warm:#F0C25C; --hot:#FF6A45;
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px rgba(0,0,0,.35);
-  }
-}
-:root[data-theme="dark"]{
-  --ground:#0F1518; --panel:#161F23; --ink:#E8EDEF; --ink-soft:#AEBEC4;
-  --slate:#7E939B; --line:#26343A;
-  --cool:#5FA8D3; --warm:#F0C25C; --hot:#FF6A45;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px rgba(0,0,0,.35);
-}
-*{box-sizing:border-box}
-body{margin:0;background:var(--ground);color:var(--ink);
-  font-family:"Inter Tight",system-ui,sans-serif;line-height:1.6;
-  -webkit-font-smoothing:antialiased;font-size:17px}
-.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
-h1,h2,h3{font-family:"Fraunces",Georgia,serif;font-weight:500;line-height:1.12;text-wrap:balance;letter-spacing:-.01em}
-.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
-.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.18em;
-  text-transform:uppercase;color:var(--slate);font-weight:500}
-
-/* ---- hero ---- */
-header{border-bottom:1px solid var(--line)}
-.hero{max-width:var(--maxw);margin:0 auto;padding:76px 24px 40px}
-.hero h1{font-size:clamp(38px,7vw,64px);margin:18px 0 0}
-.hero .lede{font-size:20px;color:var(--ink-soft);margin:22px 0 0;max-width:60ch}
-.ramp{height:14px;border-radius:8px;margin:38px 0 4px;
-  background:linear-gradient(90deg,var(--cool) 0%,var(--cool) 55%,var(--warm) 78%,var(--hot) 100%)}
-.ramp-labels{display:flex;justify-content:space-between;font-size:12px;color:var(--slate)}
-.ramp-labels .hotlab{color:var(--hot);font-weight:600}
-
-/* ---- sections ---- */
-section{padding:52px 0}
-section+section{border-top:1px solid var(--line)}
-h2{font-size:clamp(26px,4.4vw,36px);margin:0 0 8px}
-h2 .num{font-family:"IBM Plex Mono",monospace;font-size:14px;color:var(--hot);
-  font-weight:500;vertical-align:super;margin-right:10px}
-.sub{color:var(--ink-soft);font-size:18px;margin:0 0 28px;max-width:62ch}
-p{max-width:65ch}
-p a{color:var(--cool)}
-strong{font-weight:600}
-
-/* ---- stat proof row ---- */
-.proof{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:30px 0}
-.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;
-  padding:20px;box-shadow:var(--shadow)}
-.stat .k{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--slate);
-  letter-spacing:.04em;text-transform:uppercase}
-.stat .v{font-family:"Fraunces",serif;font-size:40px;line-height:1;margin:10px 0 6px;
-  font-variant-numeric:tabular-nums}
-.stat .u{font-size:13px;color:var(--ink-soft)}
-.stat.cool .v{color:var(--cool)} .stat.hot .v{color:var(--hot)}
-.callout{border-left:3px solid var(--hot);padding:6px 0 6px 20px;margin:28px 0;
-  font-size:19px;color:var(--ink)}
-
-/* ---- plot explainer cards ---- */
-.plot-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;
-  padding:26px;margin:22px 0;box-shadow:var(--shadow)}
-.plot-card .tag{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--cool);
-  letter-spacing:.06em}
-.plot-card h3{font-size:22px;margin:6px 0 4px}
-.plot-card figure{margin:20px 0 4px}
-.plot-card svg{width:100%;height:auto;display:block;border-radius:10px;
-  background:color-mix(in srgb,var(--ground) 60%,var(--panel));border:1px solid var(--line)}
-.cap{font-size:13px;color:var(--slate);margin-top:10px}
-.read{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin-top:16px;
-  font-size:15px;align-items:baseline}
-.read dt{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--slate);
-  text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
-.read dd{margin:0;color:var(--ink-soft)}
-.tab-lim{margin-top:16px;font-size:14px;color:var(--ink-soft);
-  background:color-mix(in srgb,var(--hot) 8%,var(--panel));
-  border:1px solid color-mix(in srgb,var(--hot) 25%,var(--line));
-  border-radius:8px;padding:10px 14px}
-.tab-lim b{color:var(--hot)}
-
-/* ---- meaning grid ---- */
-.mean{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px}
-.mean .cell{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px}
-.mean .cell h4{font-family:"Inter Tight",sans-serif;font-size:15px;margin:0 0 6px;
-  display:flex;align-items:center;gap:8px}
-.dot{width:9px;height:9px;border-radius:50%;flex:none}
-.mean p{font-size:14.5px;color:var(--ink-soft);margin:0}
-.products{list-style:none;padding:0;margin:22px 0 0}
-.products li{display:grid;grid-template-columns:150px 1fr;gap:16px;padding:16px 0;
-  border-top:1px solid var(--line);align-items:baseline}
-.products li .pname{font-weight:600}
-.products li .psig{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--slate)}
-.products li p{font-size:14.5px;color:var(--ink-soft);margin:6px 0 0}
-
-footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);font-size:13px}
-@media(max-width:620px){.proof,.mean{grid-template-columns:1fr}.products li{grid-template-columns:1fr}}
-
-
+tab_css = """
 /* --- doc tabs --- */
 .doctabs{position:sticky;top:0;z-index:20;display:flex;gap:0;justify-content:center;
   background:var(--ground);border-bottom:1px solid var(--line);flex-wrap:wrap}
@@ -259,13 +37,24 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
 .drawfig svg{width:100%;height:auto;display:block;border-radius:12px;
   background:color-mix(in srgb,var(--ground) 55%,var(--panel));border:1px solid var(--line);padding:8px}
 .drawfig figcaption{font-size:13px;color:var(--slate);margin-top:10px;max-width:65ch}
-</style>
-<div class="doctabs">
-  <button class="doctab active" data-tab="story"><span class="idx">1</span>The Case</button>
-  <button class="doctab" data-tab="workflow"><span class="idx">2</span>App Workflow</button>
-  <button class="doctab" data-tab="tools"><span class="idx">3</span>Tools</button>
-</div>
-<div class="panel-doc active" id="tab-story">
+"""
+
+merged_css = wf_css + "\n" + story_css + "\n" + tab_css
+
+head = ('<title>Fleet EV Battery — Field-Quality Monitor</title>\n'
+'<link rel="preconnect" href="https://fonts.googleapis.com">\n'
+'<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
+'<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter+Tight:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">\n'
+'<style>' + merged_css + '</style>\n')
+
+tabs = ('<div class="doctabs">\n'
+'  <button class="doctab active" data-tab="story"><span class="idx">1</span>The Case</button>\n'
+'  <button class="doctab" data-tab="workflow"><span class="idx">2</span>App Workflow</button>\n'
+'  <button class="doctab" data-tab="tools"><span class="idx">3</span>Tools</button>\n'
+'</div>\n')
+
+# ---------------- TAB 1: flowing narrative ----------------
+tab1 = '''<div class="panel-doc active" id="tab-story">
 <header>
   <div class="hero">
     <div class="eyebrow">Fleet EV Battery · field-quality monitor</div>
@@ -320,143 +109,7 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
   <h2>Reading the outlier is reading a physical failure</h2>
   <p class="sub">The signal is cell temperature, so a hot outlier is a defect you can name. Here is the
     pack, where the number comes from, and what has gone wrong in the cell that runs hot.</p>
-<!-- DRAWING 1: pack -> module -> cell anatomy -->
-  <div class="draw">
-    <h3>1 · Where the number comes from — pack → module → cell</h3>
-    <figure>
-      <svg viewBox="0 0 720 260" role="img" aria-label="A battery pack contains modules; a module contains cells on a cooling plate with a temperature sensor; the BMS reports the hottest cell temperature">
-        <!-- PACK -->
-        <rect x="20" y="30" width="200" height="200" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
-        <text x="120" y="24" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="currentColor">PACK (the vehicle’s battery)</text>
-        <!-- modules inside pack -->
-        <g fill="none" stroke="currentColor" stroke-width="1" opacity="0.55">
-          <rect x="36" y="46" width="80" height="78" rx="3"/><rect x="124" y="46" width="80" height="78" rx="3"/>
-          <rect x="36" y="136" width="80" height="78" rx="3"/><rect x="124" y="136" width="80" height="78" rx="3"/>
-        </g>
-        <rect x="124" y="46" width="80" height="78" rx="3" fill="none" stroke="var(--cool)" stroke-width="2"/>
-        <text x="120" y="246" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">= many modules</text>
-        <!-- arrow pack->module -->
-        <line x1="228" y1="85" x2="290" y2="85" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
-        <!-- MODULE (zoom of the highlighted one) -->
-        <rect x="300" y="34" width="180" height="150" rx="8" fill="none" stroke="var(--cool)" stroke-width="1.5"/>
-        <text x="390" y="28" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="currentColor">MODULE</text>
-        <!-- cells (cylindrical) -->
-        <g fill="none" stroke="currentColor" stroke-width="1">
-          <rect x="316" y="50" width="16" height="86" rx="7"/><rect x="338" y="50" width="16" height="86" rx="7"/>
-          <rect x="360" y="50" width="16" height="86" rx="7"/><rect x="404" y="50" width="16" height="86" rx="7"/>
-          <rect x="426" y="50" width="16" height="86" rx="7"/><rect x="448" y="50" width="16" height="86" rx="7"/>
-        </g>
-        <!-- the hot cell -->
-        <rect x="382" y="50" width="16" height="86" rx="7" fill="none" stroke="var(--hot)" stroke-width="2.2"/>
-        <!-- cooling plate -->
-        <rect x="308" y="146" width="164" height="12" rx="3" fill="none" stroke="var(--slate)" stroke-width="1.2"/>
-        <text x="390" y="170" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--slate)">liquid cooling plate</text>
-        <!-- sensor on hot cell -->
-        <circle cx="390" cy="46" r="4" fill="var(--hot)"/>
-        <line x1="390" y1="42" x2="390" y2="20" stroke="var(--hot)" stroke-width="1"/>
-        <text x="396" y="16" font-family="IBM Plex Mono" font-size="10.5" fill="var(--hot)">temp sensor</text>
-        <!-- arrow module->signal -->
-        <line x1="488" y1="95" x2="548" y2="95" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
-        <!-- SIGNAL -->
-        <rect x="558" y="60" width="142" height="72" rx="8" fill="none" stroke="var(--hot)" stroke-width="1.5"/>
-        <text x="629" y="54" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="currentColor">BMS SIGNAL</text>
-        <text x="629" y="90" text-anchor="middle" font-family="IBM Plex Mono" font-size="13" fill="var(--hot)">cell_temp_max</text>
-        <text x="629" y="110" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">10× per second</text>
-        <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
-          <polygon points="0,0 9,4.5 0,9" fill="currentColor"/></marker></defs>
-      </svg>
-      <figcaption>The Battery Management System reports the <b>hottest cell</b> in the pack, ten times a
-        second. That one number, per vehicle, is the whole signal — and one bad cell is enough to move it.</figcaption>
-    </figure>
-    <div class="reads">In the data: this is <b>cell_temp_max</b> on the Y axis of every plot. A single
-      failing cell, buried among thousands, is what pushes it above the healthy band.</div>
-  </div>
-
-  <!-- DRAWING 2: healthy vs failing cell cross-section -->
-  <div class="draw">
-    <h3>2 · What went wrong inside the cell — healthy vs failing</h3>
-    <figure>
-      <svg viewBox="0 0 720 250" role="img" aria-label="Cross-section of a healthy cell with intact separator versus a failing cell with a damaged separator and a hot spot of high internal resistance">
-        <!-- HEALTHY -->
-        <text x="170" y="26" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--ok)">HEALTHY CELL</text>
-        <rect x="60" y="40" width="220" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
-        <!-- layers: anode | separator | cathode -->
-        <rect x="76" y="54" width="56" height="122" fill="none" stroke="var(--cool)" stroke-width="1"/>
-        <rect x="208" y="54" width="56" height="122" fill="none" stroke="var(--warm)" stroke-width="1"/>
-        <line x1="150" y1="54" x2="150" y2="176" stroke="var(--ok)" stroke-width="2"/>
-        <line x1="190" y1="54" x2="190" y2="176" stroke="var(--ok)" stroke-width="2"/>
-        <text x="104" y="200" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--slate)">anode</text>
-        <text x="236" y="200" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--slate)">cathode</text>
-        <text x="170" y="216" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--ok)">intact separator</text>
-        <!-- even ion flow arrows -->
-        <g stroke="currentColor" stroke-width="1" opacity="0.5" marker-end="url(#ar2)">
-          <line x1="140" y1="80" x2="200" y2="80"/><line x1="140" y1="115" x2="200" y2="115"/><line x1="140" y1="150" x2="200" y2="150"/>
-        </g>
-        <text x="170" y="236" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--slate)">low resistance · even current · cool</text>
-
-        <!-- FAILING -->
-        <text x="550" y="26" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--hot)">FAILING CELL</text>
-        <rect x="440" y="40" width="220" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
-        <rect x="456" y="54" width="56" height="122" fill="none" stroke="var(--cool)" stroke-width="1"/>
-        <rect x="588" y="54" width="56" height="122" fill="none" stroke="var(--warm)" stroke-width="1"/>
-        <!-- damaged separator (broken line) -->
-        <line x1="530" y1="54" x2="530" y2="176" stroke="var(--hot)" stroke-width="2" stroke-dasharray="6 5"/>
-        <line x1="570" y1="54" x2="570" y2="176" stroke="var(--hot)" stroke-width="2" stroke-dasharray="6 5"/>
-        <!-- dendrite bridging -->
-        <path d="M512,150 L536,120 L556,140 L590,96" fill="none" stroke="var(--hot)" stroke-width="1.6"/>
-        <!-- hot spot -->
-        <circle cx="550" cy="120" r="22" fill="var(--hot)" opacity="0.18"/>
-        <circle cx="550" cy="120" r="11" fill="var(--hot)" opacity="0.5"/>
-        <text x="550" y="200" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--hot)">degraded separator + dendrite</text>
-        <text x="550" y="236" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--hot)">high resistance · crowded current · HOT SPOT</text>
-        <defs><marker id="ar2" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
-          <polygon points="0,0 8,4 0,8" fill="currentColor"/></marker></defs>
-      </svg>
-      <figcaption>A healthy cell moves ions evenly across an intact separator at low resistance, so it
-        stays cool. In a failing cell the separator degrades and a dendrite bridges the gap: current
-        crowds through a narrow path, resistance climbs, and a local <b>hot spot</b> forms.</figcaption>
-    </figure>
-    <div class="reads">In the data: that hot spot is the <b>seconds-long temperature spike</b> you see in
-      Step 2’s overlaid curves and Step 3’s detailed trace. It repeats every time the pack is worked hard.</div>
-  </div>
-
-  <!-- DRAWING 3: heat vs current (I2R) -->
-  <div class="draw">
-    <h3>3 · Why it runs hot — same current, more heat</h3>
-    <figure>
-      <svg viewBox="0 0 720 190" role="img" aria-label="The same current through a higher internal resistance produces more heat, following heat equals current squared times resistance">
-        <!-- healthy path -->
-        <text x="60" y="40" font-family="IBM Plex Mono" font-size="11" fill="var(--ok)">healthy cell</text>
-        <line x1="60" y1="60" x2="300" y2="60" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar3)"/>
-        <text x="150" y="52" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="currentColor">same current I</text>
-        <rect x="150" y="70" width="60" height="26" rx="4" fill="none" stroke="var(--ok)" stroke-width="1.5"/>
-        <text x="180" y="87" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--ok)">low R</text>
-        <text x="340" y="64" font-family="IBM Plex Mono" font-size="12" fill="var(--ok)">→ little heat</text>
-
-        <!-- failing path -->
-        <text x="60" y="130" font-family="IBM Plex Mono" font-size="11" fill="var(--hot)">failing cell</text>
-        <line x1="60" y1="150" x2="300" y2="150" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar3)"/>
-        <text x="150" y="142" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="currentColor">same current I</text>
-        <rect x="150" y="160" width="60" height="26" rx="4" fill="none" stroke="var(--hot)" stroke-width="2.2"/>
-        <text x="180" y="177" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--hot)">HIGH R</text>
-        <text x="340" y="154" font-family="IBM Plex Mono" font-size="12" fill="var(--hot)">→ much more heat</text>
-
-        <!-- equation -->
-        <rect x="480" y="70" width="200" height="80" rx="10" fill="none" stroke="currentColor" stroke-width="1.2"/>
-        <text x="580" y="104" text-anchor="middle" font-family="IBM Plex Mono" font-size="20" fill="currentColor">heat = I²·R</text>
-        <text x="580" y="130" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">R up → heat up, same I</text>
-        <defs><marker id="ar3" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
-          <polygon points="0,0 9,4.5 0,9" fill="currentColor"/></marker></defs>
-      </svg>
-      <figcaption>Heat produced in a cell is current squared times resistance (I²·R). The failing cell
-        carries the <em>same</em> current the rest of the pack does, but its higher internal resistance
-        turns more of that current into heat.</figcaption>
-    </figure>
-    <div class="reads">In the data: this is why an outlier can run hot <b>at a normal state of charge and
-      load</b> — the density map (Step 1) places it high on the temperature axis even where healthy cars
-      sit cool, because the heat comes from the defect, not from how hard the car is being driven.</div>
-  </div>
-
+DRAWINGS
 </section>
 
 <section>
@@ -469,7 +122,12 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
 </section>
 </div>
 </div>
-<div class="panel-doc" id="tab-workflow">
+'''
+
+tab1 = tab1.replace("DRAWINGS", drawings)
+
+# ---------------- TAB 2: the app workflow, top to bottom ----------------
+tab_workflow = '''<div class="panel-doc" id="tab-workflow">
 <header>
   <div class="hero">
     <div class="eyebrow">Fleet EV Battery · field-quality monitor</div>
@@ -528,7 +186,10 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
 </section>
 </div>
 </div>
-<div class="panel-doc" id="tab-tools">
+'''
+
+# ---------------- TAB 2: why only Databricks Apps ----------------
+tab2 = '''<div class="panel-doc" id="tab-tools">
 <header>
   <div class="hero">
     <div class="eyebrow">Fleet EV Battery · field-quality monitor</div>
@@ -733,11 +394,22 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
 </section>
 </div>
 </div>
-<script>
-document.querySelectorAll('.doctab').forEach(t=>t.onclick=()=>{
-  const id=t.dataset.tab;
-  document.querySelectorAll('.doctab').forEach(x=>x.classList.toggle('active',x===t));
-  document.querySelectorAll('.panel-doc').forEach(p=>p.classList.toggle('active',p.id==='tab-'+id));
-  window.scrollTo(0,0);
-});
-</script>
+'''
+
+script = ("<script>\n"
+"document.querySelectorAll('.doctab').forEach(t=>t.onclick=()=>{\n"
+"  const id=t.dataset.tab;\n"
+"  document.querySelectorAll('.doctab').forEach(x=>x.classList.toggle('active',x===t));\n"
+"  document.querySelectorAll('.panel-doc').forEach(p=>p.classList.toggle('active',p.id==='tab-'+id));\n"
+"  window.scrollTo(0,0);\n});\n</script>\n")
+
+out = head + tabs + tab1 + tab_workflow + tab2 + script
+open("dashboard-explainer.html", "w", encoding="utf-8").write(out)
+
+# validate
+t = open("dashboard-explainer.html", encoding="utf-8").read()
+print("div balance:", t.count("<div"), t.count("</div>"), "OK" if t.count("<div")==t.count("</div>") else "MISMATCH")
+import re
+ids = re.findall(r'id="([^"]+)"', t)
+dupes = {i for i in ids if ids.count(i) > 1}
+print("duplicate ids:", dupes or "none")
