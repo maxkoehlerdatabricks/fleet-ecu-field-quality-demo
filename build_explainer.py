@@ -441,20 +441,20 @@ tab2 = '''<div class="panel-doc" id="tab-tools">
     same ceiling on what the chart can draw.</div>
 
   <div class="field">
-    <div class="fl">From the field · extract mode</div>
-    <p>A customer on a well-tuned <b>Tableau Server</b> saw extract refreshes take <b>minutes</b>. That
-      is expected, not a misconfiguration.</p>
-    <p>In <b>extract mode</b>, a refresh rebuilds a full copy of the data every time:</p>
+    <div class="fl">From the field · live mode</div>
+    <p>A customer on a well-tuned <b>Tableau Server</b>, using a <b>live connection</b>, saw the
+      dashboard take <b>minutes to load</b>. That is expected, not a misconfiguration.</p>
+    <p>A live connection holds no copy, so opening the dashboard runs its queries against the source and
+      waits:</p>
     <ol>
-      <li>read the rows from the source,</li>
-      <li>move them to the server,</li>
-      <li>rebuild and re-index the Hyper file.</li>
+      <li>each worksheet fires a query to the source,</li>
+      <li>the source aggregates over the full data,</li>
+      <li>Tableau waits for every result, then renders.</li>
     </ol>
-    <p>At raw grain that is minutes of I/O. Tuning gets you near that floor; it can’t skip the rebuild.</p>
-    <p><b>The other mode isn’t free either.</b> A <b>live connection</b> has no extract to refresh — but
-      it pays a source round-trip on every interaction instead, and still caps the marks it draws.</p>
-    <p><b>The App has neither cost.</b> No extract to refresh, and its one small overview aggregate is a
-      cheap query, not a rebuild — so no minutes-long refresh and no stale window.</p>
+    <p>Over a large source that round-trip is minutes. Tuning trims it; it can’t remove the wait, and it
+      is paid again on each interaction.</p>
+    <p><b>The App loads in seconds.</b> Its overview reads one small pre-computed aggregate, not a live
+      scan of the raw source — so the first view is fast, and each drill is a bounded query.</p>
   </div>
 </section>
 
