@@ -1,0 +1,316 @@
+<title>Reading the Fleet, Down to One Cell</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter+Tight:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#F7F6F3; --panel:#FFFFFF; --ink:#1B2A30; --ink-soft:#4A5C63;
+  --slate:#7E939B; --line:#E3E0D9;
+  --cool:#3A7CA5; --warm:#E8B23A; --hot:#E5481F; --ok:#2F8F6B;
+  --shadow:0 1px 2px rgba(20,30,35,.05),0 8px 24px rgba(20,30,35,.05);
+  --maxw:760px;
+}
+:root:not([data-theme="light"]){
+  @media (prefers-color-scheme: dark){
+    --ground:#0F1518; --panel:#161F23; --ink:#E8EDEF; --ink-soft:#AEBEC4;
+    --slate:#7E939B; --line:#26343A;
+    --cool:#5FA8D3; --warm:#F0C25C; --hot:#FF6A45; --ok:#4FBF93;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0F1518; --panel:#161F23; --ink:#E8EDEF; --ink-soft:#AEBEC4;
+  --slate:#7E939B; --line:#26343A;
+  --cool:#5FA8D3; --warm:#F0C25C; --hot:#FF6A45; --ok:#4FBF93;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"Inter Tight",system-ui,sans-serif;line-height:1.6;
+  -webkit-font-smoothing:antialiased;font-size:17px}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+h1,h2,h3{font-family:"Fraunces",Georgia,serif;font-weight:500;line-height:1.14;text-wrap:balance;letter-spacing:-.01em}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--slate);font-weight:500}
+
+header{border-bottom:1px solid var(--line)}
+.hero{max-width:var(--maxw);margin:0 auto;padding:72px 24px 40px}
+.hero h1{font-size:clamp(36px,6.5vw,60px);margin:16px 0 0}
+.hero .lede{font-size:20px;color:var(--ink-soft);margin:20px 0 0;max-width:60ch}
+
+section{padding:52px 0}
+section+section{border-top:1px solid var(--line)}
+h2{font-size:clamp(25px,4.2vw,34px);margin:0 0 8px}
+.sub{color:var(--ink-soft);font-size:18px;margin:0 0 28px;max-width:62ch}
+p{max-width:65ch} p a{color:var(--cool)} strong{font-weight:600}
+
+/* workflow steps */
+.step{display:grid;grid-template-columns:44px 1fr;gap:20px;margin:26px 0}
+.step .n{font-family:"Fraunces",serif;font-size:26px;color:var(--hot);
+  border:1px solid var(--line);border-radius:50%;width:44px;height:44px;
+  display:flex;align-items:center;justify-content:center;background:var(--panel)}
+.step h3{font-size:20px;margin:6px 0 6px}
+.step .what{font-size:14px;color:var(--slate);font-family:"IBM Plex Mono",monospace;margin:0 0 8px}
+.step p{margin:0 0 8px;font-size:16px}
+.step figure{margin:12px 0 0}
+.step svg{width:100%;height:auto;display:block;border-radius:10px;
+  background:color-mix(in srgb,var(--ground) 55%,var(--panel));border:1px solid var(--line)}
+.cap{font-size:12.5px;color:var(--slate);margin-top:8px}
+.flow-conn{grid-column:1;justify-self:center;width:1px;background:var(--line);height:20px;margin:-14px 0}
+
+.callout{border-left:3px solid var(--hot);padding:6px 0 6px 20px;margin:26px 0;font-size:19px}
+
+/* comparison */
+.tool{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  padding:22px 24px;margin:18px 0;box-shadow:var(--shadow)}
+.tool h3{font-size:20px;margin:0 0 2px;display:flex;align-items:center;gap:10px}
+.tool .arch{font-size:13px;color:var(--slate);margin:0 0 14px;font-style:italic}
+.tool ul{margin:0;padding:0;list-style:none}
+.tool li{display:grid;grid-template-columns:22px 1fr;gap:10px;padding:7px 0;font-size:15px;align-items:baseline}
+.tool li+li{border-top:1px solid var(--line)}
+.mk{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13px}
+.no .mk{color:var(--hot)} .part .mk{color:var(--warm)} .yes .mk{color:var(--ok)}
+.tool li b{font-weight:600}
+
+/* reaction time */
+.rt{display:grid;grid-template-columns:1fr;gap:0;margin:26px 0 8px;
+  border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.rt .row{display:grid;grid-template-columns:150px 1fr 96px;gap:14px;align-items:center;
+  padding:14px 18px;background:var(--panel)}
+.rt .row+.row{border-top:1px solid var(--line)}
+.rt .row.head{background:transparent;font-family:"IBM Plex Mono",monospace;font-size:11px;
+  letter-spacing:.05em;text-transform:uppercase;color:var(--slate);padding:10px 18px}
+.rt .tool-name{font-weight:600}
+.rt .bar{height:12px;border-radius:6px;background:var(--line);position:relative;overflow:hidden}
+.rt .bar span{position:absolute;inset:0 auto 0 0;border-radius:6px}
+.rt .t{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;text-align:right;font-size:14px}
+.fast span{background:var(--ok)} .mid span{background:var(--warm)} .slow span{background:var(--hot)}
+.rtnote{font-size:13px;color:var(--slate);margin-top:6px}
+
+.legend{display:flex;gap:20px;flex-wrap:wrap;font-size:13px;color:var(--ink-soft);margin:14px 0 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+footer{border-top:1px solid var(--line);padding:38px 0 60px;color:var(--slate);font-size:13px}
+@media(max-width:600px){.rt .row{grid-template-columns:110px 1fr 70px}}
+</style>
+
+<header>
+  <div class="hero">
+    <div class="eyebrow">Fleet EV battery · field-quality dashboard</div>
+    <h1>Reading the fleet, down to one cell</h1>
+    <p class="lede">A three-step drill: from a picture of the whole fleet, to a sampled group of
+      suspects, to the raw signal of a single vehicle — without ever pre-summarizing away the
+      outlier you are hunting. Here is how the workflow reads, and why each step is hard or
+      impossible in the classic BI tools.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section>
+  <div class="eyebrow">The workflow</div>
+  <h2>Three plots, three altitudes</h2>
+  <p class="sub">You descend from the aggregate to the individual. Each step narrows the question
+    and increases the resolution of the data you are looking at.</p>
+
+  <!-- STEP 1 -->
+  <div class="step">
+    <div class="n">1</div>
+    <div>
+      <h3>The aggregated picture — a density map of the whole fleet</h3>
+      <p class="what">plot: 2D histogram · X = state of charge · Y = cell temperature · color = log(sample count)</p>
+      <p>Every raw sample from every vehicle — millions of points — is dropped into a fine grid of
+        (state-of-charge × temperature) and colored by how many samples land in each cell. The fleet
+        forms one dense, glowing cloud: normal operation. The eye is drawn to what is <em>not</em> in
+        the cloud — faint hot cells floating above it, where a few packs reached temperatures no
+        healthy battery should at that charge state. This is the full-resolution view: nothing is
+        averaged, so a rare outlier still leaves its mark.</p>
+      <figure>
+        <svg viewBox="0 0 700 200" role="img" aria-label="Density cloud of normal samples with faint hot outlier cells above a threshold line">
+          <defs><radialGradient id="cl" cx="42%" cy="72%" r="60%">
+            <stop offset="0%" stop-color="var(--cool)" stop-opacity="0.9"/>
+            <stop offset="55%" stop-color="var(--cool)" stop-opacity="0.32"/>
+            <stop offset="100%" stop-color="var(--cool)" stop-opacity="0"/></radialGradient></defs>
+          <line x1="44" y1="66" x2="660" y2="66" stroke="var(--hot)" stroke-width="1" stroke-dasharray="4 4"/>
+          <text x="656" y="59" text-anchor="end" font-family="IBM Plex Mono" font-size="11" fill="var(--hot)">55 °C risk line</text>
+          <ellipse cx="330" cy="140" rx="270" ry="46" fill="url(#cl)"/>
+          <g fill="var(--hot)"><rect x="150" y="40" width="7" height="7" opacity=".75"/>
+            <rect x="180" y="48" width="7" height="7" opacity=".5"/><rect x="138" y="54" width="7" height="7" opacity=".6"/>
+            <rect x="205" y="36" width="7" height="7" opacity=".4"/></g>
+          <text x="44" y="190" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">state of charge % →</text>
+        </svg>
+        <div class="cap">Drag a rectangle (a “lasso”) around the faint hot cells to select the suspect region.</div>
+      </figure>
+    </div>
+  </div>
+  <div class="flow-conn"></div>
+
+  <!-- STEP 2 -->
+  <div class="step">
+    <div class="n">2</div>
+    <div>
+      <h3>The sampled suspects — raw curves, overlaid</h3>
+      <p class="what">control: sample-size slider (default 30) · plot: cell temp vs time, one raw line per vehicle · table: forensic detail</p>
+      <p>The rectangle you drew is turned into a query. Rather than pull every vehicle in the region
+        (there may be hundreds), a <strong>sample-size slider</strong> takes the <em>N hottest</em> of
+        them — 30 by default — and fetches their <em>raw</em> temperature-vs-time traces from the
+        lakehouse on demand. Overlaid, the healthy curves sit low and flat; a failing pack’s line
+        peels upward in repeating spikes. Beside the plot, a <strong>table</strong> lists each sampled
+        vehicle with its peak temperature, seconds spent hot, mileage, and lowest voltage — sortable
+        evidence, worst first.</p>
+      <figure>
+        <svg viewBox="0 0 700 200" role="img" aria-label="Several flat healthy temperature curves with one spiking outlier curve over a threshold">
+          <line x1="44" y1="62" x2="660" y2="62" stroke="var(--hot)" stroke-width="1" stroke-dasharray="4 4"/>
+          <text x="656" y="55" text-anchor="end" font-family="IBM Plex Mono" font-size="11" fill="var(--hot)">55 °C</text>
+          <g fill="none" stroke="var(--slate)" stroke-width="1.8" opacity=".4">
+            <path d="M44,150 C200,142 420,124 660,116"/><path d="M44,158 C200,150 420,132 660,124"/>
+            <path d="M44,144 C200,136 420,116 660,108"/></g>
+          <path d="M44,150 C150,138 190,120 220,54 C240,26 262,26 282,54 C315,96 336,104 380,96
+                   C430,86 452,50 478,42 C500,36 522,40 542,64 C580,104 610,96 660,92"
+                fill="none" stroke="var(--hot)" stroke-width="2.6"/>
+          <text x="44" y="190" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">seconds into trip →</text>
+        </svg>
+        <div class="cap">The slider trades breadth for speed: more vehicles = more raw curves fetched and overlaid.</div>
+      </figure>
+    </div>
+  </div>
+  <div class="flow-conn"></div>
+
+  <!-- STEP 3 -->
+  <div class="step">
+    <div class="n">3</div>
+    <div>
+      <h3>One vehicle, in full — the detailed line plot</h3>
+      <p class="what">action: click a table row · plot: that vehicle’s complete raw signal at full 10 Hz</p>
+      <p>Click a row in the suspects table and the dashboard fetches <em>every raw sample</em> for that
+        one vehicle — a hundred thousand points — and draws its full-resolution trace. This is the
+        forensic close-up: the exact shape of each thermal excursion, when it happened, how long it
+        lasted, how the pack recovered. It is the evidence you would attach to a warranty claim or a
+        field-quality report, and it exists only because the raw signal was never thrown away.</p>
+      <figure>
+        <svg viewBox="0 0 700 200" role="img" aria-label="One vehicle's detailed raw trace with several sharp thermal spikes crossing the threshold">
+          <line x1="44" y1="60" x2="660" y2="60" stroke="var(--hot)" stroke-width="1" stroke-dasharray="4 4"/>
+          <text x="656" y="53" text-anchor="end" font-family="IBM Plex Mono" font-size="11" fill="var(--hot)">55 °C</text>
+          <path d="M44,150 L120,148 L150,150 L170,58 L188,150 L300,148 L320,44 L340,150 L470,149
+                   L492,52 L512,150 L600,149 L620,66 L640,150 L660,150"
+                fill="none" stroke="var(--hot)" stroke-width="2"/>
+          <text x="44" y="190" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">time (full 10 Hz) →</text>
+        </svg>
+        <div class="cap">~100,000 raw points for a single vehicle — the true incident, not a summary of it.</div>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">The constraint that shapes everything</div>
+  <h2>Why the raw signal has to stay raw</h2>
+  <p class="sub">The fault is a rare, seconds-long deviation. Averaging — over time, over cells, over
+    the fleet — is exactly what erases it. So the analysis must reach the raw signal at every step,
+    fast, at fleet scale. That single requirement is where the classic BI tools struggle.</p>
+  <p class="callout">A BI tool that must load a resident extract or in-memory model, and can only
+    render a few thousand marks, is structurally the wrong shape for “find the individual outlier in
+    a billion raw points.” It has to summarize to stay responsive — and the summary is where the
+    outlier dies.</p>
+</section>
+
+<section>
+  <div class="eyebrow">Tool by tool</div>
+  <h2>What each step needs that Tableau, Power BI and Qlik can’t (cleanly) do</h2>
+  <p class="sub">All three are excellent BI tools. The gap here is specific: this workflow depends on
+    full-resolution rendering and lazy raw fetch-on-brush against a lakehouse — patterns outside
+    their model, not general weaknesses.</p>
+
+  <div class="legend">
+    <span><i style="background:var(--hot)"></i> not possible cleanly</span>
+    <span><i style="background:var(--warm)"></i> partial / degraded</span>
+    <span><i style="background:var(--ok)"></i> works</span>
+  </div>
+
+  <div class="tool">
+    <h3>Tableau</h3>
+    <p class="arch">Renders from a resident Hyper extract (or live connection). Interactions filter marks already drawn.</p>
+    <ul>
+      <li class="no"><span class="mk">✕</span><div><b>Step 1 — full-resolution density.</b> To stay interactive it bins into a coarse hexbin; a lone hot cell is pooled into a big bin and disappears. You see an <b>aggregated</b> map, not the outlier.</div></li>
+      <li class="no"><span class="mk">✕</span><div><b>Step 2 — thousands of overlaid raw curves.</b> Beyond the mark renderer, so it falls back to an aggregated percentile band. The individual failing curve’s <b>shape is gone</b>.</div></li>
+      <li class="part"><span class="mk">~</span><div><b>Step 2 — lasso → fetch raw members.</b> The lasso selects marks <b>already in the extract</b>; it cannot lazily fetch un-extracted raw rows. To show raw detail you must pre-extract it — which is what makes it slow.</div></li>
+      <li class="part"><span class="mk">~</span><div><b>Step 3 — one vehicle’s 100k raw points.</b> Possible only if those rows were extracted up front; the extract then balloons.</div></li>
+    </ul>
+  </div>
+
+  <div class="tool">
+    <h3>Power BI</h3>
+    <p class="arch">Renders from an imported in-memory model (or DirectQuery). Visuals cap rendered points and sample beyond it.</p>
+    <ul>
+      <li class="no"><span class="mk">✕</span><div><b>Step 1 — full-resolution density.</b> Scatter/line visuals render only a few thousand points (~3.5k default, ~10k with high-density sampling) and <b>sample</b> the rest — the faint outlier cells are exactly what sampling drops.</div></li>
+      <li class="no"><span class="mk">✕</span><div><b>Step 2 — hundreds of overlaid raw curves.</b> The point cap and the line visual’s aggregation make a true raw overlay impossible; it summarizes.</div></li>
+      <li class="no"><span class="mk">✕</span><div><b>Step 2 — lasso → server-side raw fetch.</b> No native rectangle-brush that pushes a predicate to the source and returns raw rows on demand; cross-filtering runs on the loaded model.</div></li>
+      <li class="part"><span class="mk">~</span><div><b>Step 3 — one vehicle in full.</b> DirectQuery can fetch a single vehicle, but the visual still caps/samples the points, so the full 10 Hz trace is thinned.</div></li>
+    </ul>
+  </div>
+
+  <div class="tool">
+    <h3>Qlik</h3>
+    <p class="arch">In-memory associative engine. Strong associative filtering, but data must be loaded into the model and charts cap rendered points.</p>
+    <ul>
+      <li class="no"><span class="mk">✕</span><div><b>Step 1 — full-resolution density.</b> The chart engine caps rendered points; at fleet scale it aggregates, so the outlier cell is smeared away like the others.</div></li>
+      <li class="no"><span class="mk">✕</span><div><b>Step 2 — thousands of overlaid raw curves.</b> Same rendering ceiling — an honest raw overlay of hundreds of vehicles is not feasible.</div></li>
+      <li class="part"><span class="mk">~</span><div><b>Lasso → raw fetch.</b> Associative selection is excellent <b>within the loaded model</b>, but it does not lazily pull un-loaded raw rows from the lakehouse; the raw grain has to be in memory first.</div></li>
+      <li class="part"><span class="mk">~</span><div><b>Fleet-scale raw in memory.</b> Holding a billion raw rows in the in-memory model is costly and defeats the point of scaling on the lake.</div></li>
+    </ul>
+  </div>
+
+  <p>The Databricks App does all three: the density is a full-resolution histogram computed in the
+    lakehouse; the lasso becomes a <span class="mono">WHERE soc BETWEEN … AND temp BETWEEN …</span>
+    predicate that fetches raw rows for the sampled vehicles on demand; and the single-vehicle drill
+    pulls that car’s full raw trace — none of it resident in the browser.</p>
+</section>
+
+<section>
+  <div class="eyebrow">Reaction time on mass data</div>
+  <h2>Hundreds of vehicles, billions of raw points</h2>
+  <p class="sub">Where the data lives decides how the tool behaves as the fleet grows. The classic
+    BI tools front-load the cost into a big load/refresh and keep granular data resident; the App
+    keeps compute in the lakehouse and moves only what each step needs.</p>
+
+  <div class="rt">
+    <div class="row head"><span>Tool</span><span>Initial load / first interactive view</span><span>time</span></div>
+    <div class="row"><span class="tool-name">Databricks App</span><div class="bar fast"><span style="width:14%"></span></div><span class="t">~2 s</span></div>
+    <div class="row"><span class="tool-name">Tableau</span><div class="bar slow"><span style="width:100%"></span></div><span class="t">~15 s</span></div>
+    <div class="row"><span class="tool-name">Power BI</span><div class="bar mid"><span style="width:70%"></span></div><span class="t">~10 s</span></div>
+    <div class="row"><span class="tool-name">Qlik</span><div class="bar mid"><span style="width:65%"></span></div><span class="t">~9 s</span></div>
+  </div>
+  <div class="rtnote">Illustrative, for a fleet in the hundreds of vehicles / billions of raw samples.
+    BI figures reflect building and loading a resident extract / in-memory model (or a slow DirectQuery
+    round-trip) plus the first render; the App figure is a pre-materialized aggregate served from the warehouse.</div>
+
+  <div class="rt">
+    <div class="row head"><span>Tool</span><span>Each interaction (lasso, re-filter, drill)</span><span>time</span></div>
+    <div class="row"><span class="tool-name">Databricks App</span><div class="bar fast"><span style="width:20%"></span></div><span class="t">~1–5 s</span></div>
+    <div class="row"><span class="tool-name">Tableau</span><div class="bar slow"><span style="width:100%"></span></div><span class="t">re-query extract + LOD passes</span></div>
+    <div class="row"><span class="tool-name">Power BI</span><div class="bar mid"><span style="width:60%"></span></div><span class="t">model re-scan / DQ round-trip</span></div>
+    <div class="row"><span class="tool-name">Qlik</span><div class="bar mid"><span style="width:55%"></span></div><span class="t">in-memory recompute</span></div>
+  </div>
+
+  <p style="margin-top:22px"><strong>Why the App stays flat as the fleet grows.</strong> Its
+    overview reads a small pre-computed aggregate, and each lasso is a <em>bounded</em> pushdown query
+    — it touches only the sampled vehicles’ rows (helped by clustering the raw table on vehicle id),
+    never the whole dataset. Add ten times the vehicles and the interaction cost barely moves, because
+    the query is always bounded and the full data never travels to the client.</p>
+
+  <p><strong>Why the BI tools degrade.</strong> Their responsiveness depends on holding granular data
+    resident. As the fleet grows the extract / in-memory model grows with it: the initial load and
+    every refresh get slower, memory pressure rises, and to keep interactions bearable the tool
+    summarizes harder — which, for outlier work, is the one thing you cannot afford. DirectQuery
+    trades the big load for a per-interaction round-trip to the source, moving the latency into every
+    click instead of removing it.</p>
+</section>
+
+<footer class="wrap">
+  Fleet ECU field-quality demo · workflow &amp; tooling comparison. Reaction-time figures are
+  illustrative for a hundreds-of-vehicles, billions-of-samples fleet; BI-tool point-limit and
+  extract behaviors are as generally documented and may vary by version, connector, and configuration.
+</footer>
+</div>
