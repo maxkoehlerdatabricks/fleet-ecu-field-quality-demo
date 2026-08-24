@@ -381,6 +381,15 @@ tab2 = '''<div class="panel-doc" id="tab-tools">
       lasso both fetches and renders them.</p>
   </div>
 
+  <div class="cmp-step"><p class="h">Step 2 · the overlay</p><h3>Overlay the sampled vehicles’ raw curves, one line each</h3>
+    <div class="cmp">
+      <div class="r app yes"><span class="tn">Databricks App</span><span class="mk">✓</span><p>Draws each sampled vehicle’s raw trace. The failing curve’s shape is visible.</p></div>
+      <div class="r no"><span class="tn">Tableau</span><span class="mk">✕</span><p>Too many marks. It falls back to a percentile band. The individual shape is lost.</p></div>
+      <div class="r no"><span class="tn">Power BI</span><span class="mk">✕</span><p>Point cap plus line aggregation. A true raw overlay is not possible.</p></div>
+      <div class="r no"><span class="tn">Qlik</span><span class="mk">✕</span><p>Same rendering ceiling. Hundreds of raw curves cannot be drawn honestly.</p></div>
+    </div>
+  </div>
+
   <div class="cmp-step"><p class="h">Step 2 · the sampling slider</p><h3>Set how many vehicles the fetch pulls — a live control on the query</h3>
     <div class="cmp">
       <div class="r app yes"><span class="tn">Databricks App</span><span class="mk">✓</span><p>A slider parameterises the pushdown query (take the N hottest). Move it, the query re-runs and re-fetches.</p></div>
@@ -391,15 +400,6 @@ tab2 = '''<div class="panel-doc" id="tab-tools">
     <p class="modes-note">This is a control on the <em>query</em>, not on already-loaded marks — it decides
       how much raw data the next fetch brings back. It only makes sense when the app owns the fetch, which
       is why the BI tools have no equivalent.</p>
-  </div>
-
-  <div class="cmp-step"><p class="h">Step 2 · the overlay</p><h3>Overlay the sampled vehicles’ raw curves, one line each</h3>
-    <div class="cmp">
-      <div class="r app yes"><span class="tn">Databricks App</span><span class="mk">✓</span><p>Draws each sampled vehicle’s raw trace. The failing curve’s shape is visible.</p></div>
-      <div class="r no"><span class="tn">Tableau</span><span class="mk">✕</span><p>Too many marks. It falls back to a percentile band. The individual shape is lost.</p></div>
-      <div class="r no"><span class="tn">Power BI</span><span class="mk">✕</span><p>Point cap plus line aggregation. A true raw overlay is not possible.</p></div>
-      <div class="r no"><span class="tn">Qlik</span><span class="mk">✕</span><p>Same rendering ceiling. Hundreds of raw curves cannot be drawn honestly.</p></div>
-    </div>
   </div>
 
   <div class="cmp-step"><p class="h">Step 3</p><h3>Drill to one vehicle’s full 10 Hz raw trace (~100k points)</h3>
