@@ -69,6 +69,14 @@ tab_css = """
   color:var(--hot);font-size:12.5px;line-height:1.5}
 .modes-note{font-size:13.5px;color:var(--ink-soft);margin:12px 2px 0}
 .modes-note b{color:var(--ink)}
+.field{background:color-mix(in srgb,var(--warm) 10%,var(--panel));
+  border:1px solid color-mix(in srgb,var(--warm) 35%,var(--line));border-radius:12px;
+  padding:16px 20px;margin:22px 0}
+.field .fl{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--warm);font-weight:600;margin-bottom:6px}
+.field p{font-size:14.5px;color:var(--ink-soft);margin:0 0 8px;max-width:none}
+.field p:last-child{margin-bottom:0}
+.field b{color:var(--ink)}
 .drawfig{margin:22px 0 6px}
 .drawfig svg{width:100%;height:auto;display:block;border-radius:12px;
   background:color-mix(in srgb,var(--ground) 55%,var(--panel));border:1px solid var(--line);padding:8px}
@@ -429,6 +437,20 @@ tab2 = '''<div class="panel-doc" id="tab-tools">
     fleet grows</b> (each lasso is a bounded query). <b>Pre-load mode degrades</b> as the resident copy
     grows; <b>DirectQuery mode</b> pays a source round-trip per interaction instead — different cost,
     same ceiling on what the chart can draw.</div>
+
+  <div class="field">
+    <div class="fl">From the field</div>
+    <p>A customer running a well-optimized <b>Tableau Server</b> saw <b>extract refreshes take
+      minutes</b> at this kind of scale. That is expected, not a misconfiguration: an extract refresh
+      is a batch rebuild of a full second copy of the data — query the source, move the rows, rebuild
+      and re-index the Hyper file, publish. At raw grain over a large fleet that is minutes of I/O by
+      physics; tuning runs it closer to that floor but can’t remove the rebuild. The only ways down —
+      incremental refresh or a pre-aggregated extract — either don’t fit every data shape or drop the
+      raw grain (and the outlier) that the analysis needs.</p>
+    <p>The App pays none of this: <b>there is no extract to refresh.</b> It reads the lakehouse tables
+      directly; its one small overview aggregate is refreshed by a cheap query, not a full
+      re-materialization of the raw data — so no minutes-long rebuild and no staleness window.</p>
+  </div>
 </section>
 
 <section>
