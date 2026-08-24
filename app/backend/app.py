@@ -147,39 +147,46 @@ def density():
 
 class Box(BaseModel):
     x0: float; x1: float; y0: float; y1: float   # rectangle in (State of Charge, cell temp)
+    sample_size: int = 30                        # max vehicles to bring into the middle panel
 
 
 @app.post("/api/brush")
 def brush(box: Box):
     lo_x, hi_x = min(box.x0, box.x1), max(box.x0, box.x1)
     lo_y, hi_y = min(box.y0, box.y1), max(box.y0, box.y1)
+    n = max(1, min(int(box.sample_size), 200))   # clamp the user-chosen sample size
 
-    # Density brush: the box is in (SoC, temp). Find the (vin) with any raw sample inside it.
-    members = _query(f"""
-        SELECT DISTINCT vin, day FROM {RAW}
+    # Density brush: the box is in (SoC, temp). Count all vins with a sample inside it, then take
+    # the SAMPLE-SIZE hottest of them (peak temp) so the selection is meaningful, not arbitrary.
+    n_members_row = _query(f"""
+        SELECT count(DISTINCT vin) AS n FROM {RAW}
         WHERE soc_pct BETWEEN :lx AND :hx AND cell_temp_max_c BETWEEN :ly AND :hy
     """, {"lx": lo_x, "hx": hi_x, "ly": lo_y, "hy": hi_y})
+    n_members = n_members_row[0]["n"]
+    if not n_members:
+        return JSONResponse({"traces": [], "suspects": [], "n_members": 0, "n_sampled": 0})
 
-    # Cap the number of member vins whose RAW traces we ship (keeps the browser + payload sane
-    # no matter how wide the brush is). The suspects table below still summarizes ALL members.
-    uniq_vins = list({m["vin"] for m in members})[:6]
-    if not uniq_vins:
-        return JSONResponse({"traces": [], "suspects": [], "n_members": 0})
+    sampled = _query(f"""
+        SELECT vin FROM (
+            SELECT vin, max(cell_temp_max_c) AS pk FROM {RAW}
+            WHERE soc_pct BETWEEN :lx AND :hx AND cell_temp_max_c BETWEEN :ly AND :hy
+            GROUP BY vin ORDER BY pk DESC LIMIT {n})
+    """, {"lx": lo_x, "hx": hi_x, "ly": lo_y, "hy": hi_y})
+    sampled_vins = [r["vin"] for r in sampled]
+    all_list = ",".join(f"'{v}'" for v in sampled_vins)
 
-    vin_list = ",".join(f"'{v}'" for v in uniq_vins)
-    # RAW member traces: keep FULL resolution around the hot events (>=48C, the diagnostic part)
-    # plus a sparse 1-in-20 backbone so the baseline line stays continuous. Still raw rows.
+    # RAW traces: keep FULL resolution around the hot events (>=48C, the diagnostic part) plus a
+    # sparse 1-in-20 backbone. To protect the browser we draw traces for at most the 8 hottest of
+    # the sampled cars; the suspects table below summarizes ALL sampled cars.
+    trace_vins = sampled_vins[:8]
+    trace_list = ",".join(f"'{v}'" for v in trace_vins)
     traces, rb = _query_m(f"""
         SELECT vin, ts, cell_temp_max_c FROM (
             SELECT vin, ts, cell_temp_max_c, t_sec
-            FROM {RAW} WHERE vin IN ({vin_list}))
+            FROM {RAW} WHERE vin IN ({trace_list}))
         WHERE cell_temp_max_c >= 48 OR t_sec % 20 = 0
         ORDER BY vin, ts
     """)
-    # suspects table: forensic detail for ALL brushed members (capped at 40 rows for the table),
-    # worst-first. This summarizes the whole selection, not just the vins we drew traces for.
-    all_vins = list({m["vin"] for m in members})[:40]
-    all_list = ",".join(f"'{v}'" for v in all_vins)
     suspects = _query(f"""
         SELECT vin,
                round(max(odometer_km))                                       AS odometer_km,
@@ -187,11 +194,11 @@ def brush(box: Box):
                round(sum(CASE WHEN cell_temp_max_c > {HOT_C} THEN 0.1 ELSE 0 END),1) AS hot_seconds,
                round(min(cell_voltage_min_v),3)                              AS min_voltage_v
         FROM {RAW} WHERE vin IN ({all_list})
-        GROUP BY vin ORDER BY hot_seconds DESC
+        GROUP BY vin ORDER BY hot_seconds DESC, peak_temp_c DESC
     """)
     return JSONResponse({"traces": _json_safe(traces), "suspects": _json_safe(suspects),
-                         "n_members": len({m["vin"] for m in members}), "n_traced": len(uniq_vins),
-                         "scanned_bytes": rb})
+                         "n_members": n_members, "n_sampled": len(sampled_vins),
+                         "n_traced": len(trace_vins), "scanned_bytes": rb})
 
 
 @app.get("/api/vehicle")

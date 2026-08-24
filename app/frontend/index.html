@@ -28,6 +28,9 @@
   #left{height:66vh}                          /* full-width, tall: the primary canvas */
   .hidden{display:none}
   .hint{font-size:11px;color:var(--slate);text-align:center;padding:6px;font-style:italic}
+  .sizerow{display:flex;align-items:center;gap:10px;margin:8px 4px 0;font-size:12px;color:var(--ink)}
+  .sizerow input[type=range]{flex:1;max-width:280px;accent-color:var(--coral)}
+  .sizerow .mono{font-weight:600;min-width:2ch;text-align:right}
   .stat{font-size:11px;color:var(--slate);margin:6px 4px 0}
   table{border-collapse:collapse;width:100%;font-size:11px;margin-top:8px}
   th,td{border-bottom:1px solid var(--line);padding:3px 6px;text-align:right}
@@ -63,7 +66,12 @@
     <div class="tab-note" id="tab-note"></div>
     <div id="left" class="plot"></div>
     <div class="stat" id="left-stat">loading…</div>
-    <div class="hint" id="scroll-hint">Drag a rectangle (box-select) over the suspects, then scroll down ↓</div>
+    <div class="sizerow">
+      <label for="samplesize">Sample size (vehicles into the detail panel):</label>
+      <input type="range" id="samplesize" min="1" max="100" value="30">
+      <span class="mono" id="samplesize-val">30</span>
+    </div>
+    <div class="hint" id="scroll-hint">Drag a rectangle (box-select) over the hot samples, then scroll down ↓</div>
   </div>
 
   <div class="panel hidden" id="right-panel">
@@ -82,7 +90,7 @@
 
 <script>
 const COL = {ink:'#1B3139', coral:'#FF3621', slate:'#618794'};
-let BAND=null, DATA={};
+let BAND=null, DATA={}, LAST_BOX=null;   // LAST_BOX remembers the current brush so the slider can re-run it
 
 const DENSITY_DESC = {
   title:'Raw-sample density — State of Charge vs cell temperature',
@@ -135,15 +143,19 @@ async function drawDensity(){
   wireSelect();
 }
 
+function sampleSize(){ return parseInt(document.getElementById('samplesize').value,10)||30; }
+
 function wireSelect(){
   document.getElementById('left').on('plotly_selected', ev=>{
     if(!ev||!ev.range) return;
     const [x0,x1]=ev.range.x, [y0,y1]=ev.range.y;
-    doBrush({x0,x1,y0,y1});
+    LAST_BOX={x0,x1,y0,y1};
+    doBrush(LAST_BOX);
   });
 }
 
 async function doBrush(box){
+  LAST_BOX=box;
   const rp=document.getElementById('right-panel');
   rp.classList.remove('hidden');
   // a fresh selection always starts from scratch: hide/clear the single-vehicle panel
@@ -152,7 +164,8 @@ async function doBrush(box){
   document.getElementById('rp-badge').textContent='loading…';
   rp.scrollIntoView({behavior:'smooth', block:'start'});
   const t0=performance.now();
-  const r=await fetch('/api/brush',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(box)});
+  const body=JSON.stringify({...box, sample_size:sampleSize()});
+  const r=await fetch('/api/brush',{method:'POST',headers:{'Content-Type':'application/json'},body});
   const txt=await r.text(); const d=JSON.parse(txt); const ms=Math.round(performance.now()-t0);
   const sizeLbl=dataSizeLabel(txt, d.scanned_bytes);
   // right plot: member raw traces (need time-in-trip x) + population band overlay
@@ -176,8 +189,9 @@ async function doBrush(box){
     susEl.querySelectorAll('tr.vrow').forEach(r=>r.classList.remove('sel'));
     tr.classList.add('sel'); drawVehicle(tr.dataset.vin);
   });
-  document.getElementById('rp-badge').textContent=`${s.length} suspects`;
-  document.getElementById('right-stat').textContent=`pushdown fetched ${d.traces.length} raw rows for ${s.length} cars in ${ms} ms — never resident in the browser · ${sizeLbl}`;
+  const more = d.n_members > d.n_sampled ? ` of ${d.n_members} in selection` : '';
+  document.getElementById('rp-badge').textContent=`${d.n_sampled} sampled${more}`;
+  document.getElementById('right-stat').textContent=`sampled the ${d.n_sampled} hottest of ${d.n_members} brushed vehicles · pushdown fetched ${d.traces.length} raw rows in ${ms} ms — never resident in the browser · ${sizeLbl}`;
   // NO auto-selection: the single-vehicle panel stays hidden until the user clicks a row.
 }
 
@@ -205,11 +219,19 @@ async function drawVehicle(vin){
      `Single-vehicle detail — State of Charge vs cell temp `;
 }
 
+// sample-size slider: show the value live; re-run the current brush when the user lets go
+function wireSlider(){
+  const sl=document.getElementById('samplesize'), val=document.getElementById('samplesize-val');
+  sl.addEventListener('input', ()=>{ val.textContent=sl.value; });
+  sl.addEventListener('change', ()=>{ if(LAST_BOX) doBrush(LAST_BOX); });
+}
+
 // single view: render the density plot + its labels once, on load
 function init(){
   document.getElementById('left-title').textContent=DENSITY_DESC.title;
   document.getElementById('tab-note').textContent='Tableau limit: '+DENSITY_DESC.note;
   document.getElementById('tabdesc').textContent=DENSITY_DESC.tab;
+  wireSlider();
   drawDensity();
 }
 (async()=>{ loadStats(); await loadBand(); init(); })();
