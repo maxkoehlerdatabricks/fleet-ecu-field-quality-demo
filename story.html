@@ -138,28 +138,28 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
     fleet, those eight seconds vanish into a comfortable mid-thirties number that looks perfectly
     healthy.</p>
 
-  <p>This is the numbers from the demo fleet — 20 cars, three days, 2.16&nbsp;million raw samples:</p>
+  <p>This is the numbers from the demo fleet — 200 cars, three days, 21.6&nbsp;million raw samples:</p>
 
   <div class="proof">
     <div class="stat cool">
       <div class="k">Fleet median</div>
-      <div class="v">38.6</div>
+      <div class="v">39.1</div>
       <div class="u">°C — what an average dashboard shows</div>
     </div>
     <div class="stat">
       <div class="k">Top 0.1% of samples</div>
-      <div class="v">62.6</div>
+      <div class="v">62.8</div>
       <div class="u">°C — already past the risk line</div>
     </div>
     <div class="stat hot">
       <div class="k">Hottest sample</div>
-      <div class="v">70.5</div>
-      <div class="u">°C — from just 3 of 20 cars</div>
+      <div class="v">72.5</div>
+      <div class="u">°C — from just 30 of 200 cars</div>
     </div>
   </div>
 
-  <p class="callout">The whole fleet looks fine at 38&nbsp;°C. The truth — a 70&nbsp;°C excursion
-    on three cars — lives in a fraction of a percent of the data. You cannot aggregate your way
+  <p class="callout">The whole fleet looks fine at 39&nbsp;°C. The truth — a 72&nbsp;°C excursion
+    on a handful of cars — lives in a fraction of a percent of the data. You cannot aggregate your way
     to it. You have to keep the raw signal and go hunting.</p>
 
   <p>That single constraint — <strong>outliers survive only at raw resolution</strong> — is what
@@ -325,47 +325,24 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
 </section>
 
 <section>
-  <div class="eyebrow">Beyond batteries</div>
-  <h2>Every tested product has this shape of data</h2>
-  <p class="sub">The battery is one instance of a general pattern: a high-frequency signal from a
-    fleet of units in the field, where the fault is a rare deviation that no summary preserves.
-    The same dashboard — brush the population, drill to the raw member — applies wherever a
-    product is instrumented and tested.</p>
+  <div class="eyebrow">Why it matters for the fleet</div>
+  <h2>Catch the hot pack before it becomes a failure</h2>
+  <p class="sub">For an EV battery, a repeating thermal excursion is not a curiosity — it is the
+    early signature of accelerated aging, capacity loss, and, at the extreme, a safety event. Finding
+    the pack while it is still just an outlier is the whole point.</p>
 
-  <ul class="products">
-    <li>
-      <div><div class="pname">Electric motors &amp; inverters</div>
-        <div class="psig mono">winding temp · torque · vibration</div></div>
-      <p>A bearing starting to fail shows as a vibration signature seconds long — invisible in an
-        RMS average, obvious in the raw trace.</p>
-    </li>
-    <li>
-      <div><div class="pname">Combustion powertrain</div>
-        <div class="psig mono">oil pressure · knock · coolant temp</div></div>
-      <p>A knock event or a pressure dropout is a transient. The engine's daily average looks
-        nominal right up until the failure.</p>
-    </li>
-    <li>
-      <div><div class="pname">Industrial &amp; wind turbines</div>
-        <div class="psig mono">gearbox temp · blade load · rpm</div></div>
-      <p>Fatigue accumulates in load cycles. The phase-portrait view is the native language of
-        rotating machinery health.</p>
-    </li>
-    <li>
-      <div><div class="pname">Medical &amp; lab devices</div>
-        <div class="psig mono">pump flow · pressure · dose</div></div>
-      <p>A single out-of-spec dose cycle among millions is exactly the raw-resolution outlier a
-        regulator will ask you to produce on demand.</p>
-    </li>
-  </ul>
+  <p>Across a fleet of thousands of vehicles, that outlier is a fraction of a percent of the data,
+    and it only exists at the raw sample grain. The Fleet EV Battery — Field-Quality Monitor is built
+    to reach it: hold every raw cell-temperature sample in the lakehouse, show the whole fleet at full
+    resolution, brush the suspect region, and drill to one vehicle's raw trace on demand.</p>
 
-  <p class="callout">Wherever the answer to "which unit is failing, and why" lives in the raw
-    signal and not the summary, the tool has to reach the raw signal — fast, on demand, at fleet
-    scale. That is the capability this dashboard is built to demonstrate.</p>
+  <p class="callout">The answer to "which pack is failing, and why" lives in the raw signal, not in
+    any summary. Keeping that signal reachable — fast, on demand, at fleet scale — is the capability
+    this dashboard demonstrates.</p>
 </section>
 
 <footer class="wrap">
-  Fleet ECU field-quality demo · figures drawn from the 20-car / 2.16&nbsp;M-sample demo dataset ·
+  Fleet EV Battery — Field-Quality Monitor · figures drawn from the 200-car / 21.6&nbsp;M-sample demo dataset ·
   cell-temperature risk threshold set at 55&nbsp;°C for illustration.
 </footer>
 </div>
