@@ -619,7 +619,7 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
     <div class="cmp">
       <div class="r app yes"><span class="tn">Databricks App</span><span class="mk">✓</span><p>The outlier cell is drawn.</p></div>
       <div class="r no"><span class="tn">Tableau</span><span class="mk">✕</span><p>Bins into a coarse hexbin to stay fast. The lone hot cell is pooled away.</p></div>
-      <div class="r no"><span class="tn">Power BI</span><span class="mk">✕</span><p>Caps a scatter at ~3.5k points (~10k sampled). It drops the rare cell.</p></div>
+      <div class="r no"><span class="tn">Power BI</span><span class="mk">✕</span><p>Caps a scatter at ~3.5k points (~10k only with the high-density sampling setting on), so it may not draw every point.</p></div>
       <div class="r no"><span class="tn">Qlik</span><span class="mk">✕</span><p>Chart engine caps points too. At fleet scale it aggregates the cell away.</p></div>
     </div>
   </div>
