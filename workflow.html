@@ -61,6 +61,32 @@ p{max-width:65ch} p a{color:var(--cool)} strong{font-weight:600}
 
 .callout{border-left:3px solid var(--hot);padding:6px 0 6px 20px;margin:26px 0;font-size:19px}
 
+/* battery drawings */
+.draw{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  padding:22px 24px;margin:20px 0;box-shadow:var(--shadow)}
+.draw h3{font-size:19px;margin:0 0 4px}
+.draw svg{width:100%;height:auto;display:block;margin:8px 0 0}
+.draw figcaption{font-size:13px;color:var(--slate);margin-top:10px}
+.draw .reads{margin:14px 0 0;padding:12px 16px;border-radius:8px;font-size:14.5px;
+  background:color-mix(in srgb,var(--hot) 7%,var(--panel));
+  border:1px solid color-mix(in srgb,var(--hot) 22%,var(--line))}
+.draw .reads b{color:var(--hot)}
+
+/* step-by-step tool comparison */
+.cmp-step{margin:30px 0}
+.cmp-step .h{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--cool);margin:0 0 2px}
+.cmp-step h3{font-size:19px;margin:0 0 12px}
+.cmp{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.cmp .r{display:grid;grid-template-columns:104px 30px 1fr;gap:12px;align-items:baseline;
+  padding:11px 16px;background:var(--panel);font-size:14.5px}
+.cmp .r+.r{border-top:1px solid var(--line)}
+.cmp .r.app{background:color-mix(in srgb,var(--ok) 8%,var(--panel))}
+.cmp .tn{font-weight:600}
+.cmp .mk{font-family:"IBM Plex Mono",monospace;font-weight:600;text-align:center}
+.cmp .no .mk{color:var(--hot)} .cmp .part .mk{color:var(--warm)} .cmp .yes .mk{color:var(--ok)}
+.cmp .r p{margin:0;max-width:none}
+
 /* comparison */
 .tool{background:var(--panel);border:1px solid var(--line);border-radius:14px;
   padding:22px 24px;margin:18px 0;box-shadow:var(--shadow)}
@@ -217,55 +243,216 @@ footer{border-top:1px solid var(--line);padding:38px 0 60px;color:var(--slate);f
 </section>
 
 <section>
-  <div class="eyebrow">Tool by tool</div>
-  <h2>What each step needs that Tableau, Power BI and Qlik can’t (cleanly) do</h2>
-  <p class="sub">All three are excellent BI tools. The gap here is specific: this workflow depends on
-    full-resolution rendering and lazy raw fetch-on-brush against a lakehouse — patterns outside
-    their model, not general weaknesses.</p>
+  <div class="eyebrow">The product · what happened to the battery</div>
+  <h2>What the plots are telling you about the pack</h2>
+  <p class="sub">The signal is cell temperature. To read the outlier is to read a physical failure
+    inside the battery. Here is what the pack is, where the number comes from, and what has gone
+    wrong in the cell that runs hot.</p>
+
+  <!-- DRAWING 1: pack -> module -> cell anatomy -->
+  <div class="draw">
+    <h3>1 · Where the number comes from — pack → module → cell</h3>
+    <figure>
+      <svg viewBox="0 0 720 260" role="img" aria-label="A battery pack contains modules; a module contains cells on a cooling plate with a temperature sensor; the BMS reports the hottest cell temperature">
+        <!-- PACK -->
+        <rect x="20" y="30" width="200" height="200" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="120" y="24" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="currentColor">PACK (the vehicle’s battery)</text>
+        <!-- modules inside pack -->
+        <g fill="none" stroke="currentColor" stroke-width="1" opacity="0.55">
+          <rect x="36" y="46" width="80" height="78" rx="3"/><rect x="124" y="46" width="80" height="78" rx="3"/>
+          <rect x="36" y="136" width="80" height="78" rx="3"/><rect x="124" y="136" width="80" height="78" rx="3"/>
+        </g>
+        <rect x="124" y="46" width="80" height="78" rx="3" fill="none" stroke="var(--cool)" stroke-width="2"/>
+        <text x="120" y="246" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">= many modules</text>
+        <!-- arrow pack->module -->
+        <line x1="228" y1="85" x2="290" y2="85" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+        <!-- MODULE (zoom of the highlighted one) -->
+        <rect x="300" y="34" width="180" height="150" rx="8" fill="none" stroke="var(--cool)" stroke-width="1.5"/>
+        <text x="390" y="28" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="currentColor">MODULE</text>
+        <!-- cells (cylindrical) -->
+        <g fill="none" stroke="currentColor" stroke-width="1">
+          <rect x="316" y="50" width="16" height="86" rx="7"/><rect x="338" y="50" width="16" height="86" rx="7"/>
+          <rect x="360" y="50" width="16" height="86" rx="7"/><rect x="404" y="50" width="16" height="86" rx="7"/>
+          <rect x="426" y="50" width="16" height="86" rx="7"/><rect x="448" y="50" width="16" height="86" rx="7"/>
+        </g>
+        <!-- the hot cell -->
+        <rect x="382" y="50" width="16" height="86" rx="7" fill="none" stroke="var(--hot)" stroke-width="2.2"/>
+        <!-- cooling plate -->
+        <rect x="308" y="146" width="164" height="12" rx="3" fill="none" stroke="var(--slate)" stroke-width="1.2"/>
+        <text x="390" y="170" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--slate)">liquid cooling plate</text>
+        <!-- sensor on hot cell -->
+        <circle cx="390" cy="46" r="4" fill="var(--hot)"/>
+        <line x1="390" y1="42" x2="390" y2="20" stroke="var(--hot)" stroke-width="1"/>
+        <text x="396" y="16" font-family="IBM Plex Mono" font-size="10.5" fill="var(--hot)">temp sensor</text>
+        <!-- arrow module->signal -->
+        <line x1="488" y1="95" x2="548" y2="95" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+        <!-- SIGNAL -->
+        <rect x="558" y="60" width="142" height="72" rx="8" fill="none" stroke="var(--hot)" stroke-width="1.5"/>
+        <text x="629" y="54" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="currentColor">BMS SIGNAL</text>
+        <text x="629" y="90" text-anchor="middle" font-family="IBM Plex Mono" font-size="13" fill="var(--hot)">cell_temp_max</text>
+        <text x="629" y="110" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">10× per second</text>
+        <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <polygon points="0,0 9,4.5 0,9" fill="currentColor"/></marker></defs>
+      </svg>
+      <figcaption>The Battery Management System reports the <b>hottest cell</b> in the pack, ten times a
+        second. That one number, per vehicle, is the whole signal — and one bad cell is enough to move it.</figcaption>
+    </figure>
+    <div class="reads">In the data: this is <b>cell_temp_max</b> on the Y axis of every plot. A single
+      failing cell, buried among thousands, is what pushes it above the healthy band.</div>
+  </div>
+
+  <!-- DRAWING 2: healthy vs failing cell cross-section -->
+  <div class="draw">
+    <h3>2 · What went wrong inside the cell — healthy vs failing</h3>
+    <figure>
+      <svg viewBox="0 0 720 250" role="img" aria-label="Cross-section of a healthy cell with intact separator versus a failing cell with a damaged separator and a hot spot of high internal resistance">
+        <!-- HEALTHY -->
+        <text x="170" y="26" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--ok)">HEALTHY CELL</text>
+        <rect x="60" y="40" width="220" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <!-- layers: anode | separator | cathode -->
+        <rect x="76" y="54" width="56" height="122" fill="none" stroke="var(--cool)" stroke-width="1"/>
+        <rect x="208" y="54" width="56" height="122" fill="none" stroke="var(--warm)" stroke-width="1"/>
+        <line x1="150" y1="54" x2="150" y2="176" stroke="var(--ok)" stroke-width="2"/>
+        <line x1="190" y1="54" x2="190" y2="176" stroke="var(--ok)" stroke-width="2"/>
+        <text x="104" y="200" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--slate)">anode</text>
+        <text x="236" y="200" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--slate)">cathode</text>
+        <text x="170" y="216" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--ok)">intact separator</text>
+        <!-- even ion flow arrows -->
+        <g stroke="currentColor" stroke-width="1" opacity="0.5" marker-end="url(#ar2)">
+          <line x1="140" y1="80" x2="200" y2="80"/><line x1="140" y1="115" x2="200" y2="115"/><line x1="140" y1="150" x2="200" y2="150"/>
+        </g>
+        <text x="170" y="236" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--slate)">low resistance · even current · cool</text>
+
+        <!-- FAILING -->
+        <text x="550" y="26" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--hot)">FAILING CELL</text>
+        <rect x="440" y="40" width="220" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <rect x="456" y="54" width="56" height="122" fill="none" stroke="var(--cool)" stroke-width="1"/>
+        <rect x="588" y="54" width="56" height="122" fill="none" stroke="var(--warm)" stroke-width="1"/>
+        <!-- damaged separator (broken line) -->
+        <line x1="530" y1="54" x2="530" y2="176" stroke="var(--hot)" stroke-width="2" stroke-dasharray="6 5"/>
+        <line x1="570" y1="54" x2="570" y2="176" stroke="var(--hot)" stroke-width="2" stroke-dasharray="6 5"/>
+        <!-- dendrite bridging -->
+        <path d="M512,150 L536,120 L556,140 L590,96" fill="none" stroke="var(--hot)" stroke-width="1.6"/>
+        <!-- hot spot -->
+        <circle cx="550" cy="120" r="22" fill="var(--hot)" opacity="0.18"/>
+        <circle cx="550" cy="120" r="11" fill="var(--hot)" opacity="0.5"/>
+        <text x="550" y="200" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--hot)">degraded separator + dendrite</text>
+        <text x="550" y="236" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--hot)">high resistance · crowded current · HOT SPOT</text>
+        <defs><marker id="ar2" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+          <polygon points="0,0 8,4 0,8" fill="currentColor"/></marker></defs>
+      </svg>
+      <figcaption>A healthy cell moves ions evenly across an intact separator at low resistance, so it
+        stays cool. In a failing cell the separator degrades and a dendrite bridges the gap: current
+        crowds through a narrow path, resistance climbs, and a local <b>hot spot</b> forms.</figcaption>
+    </figure>
+    <div class="reads">In the data: that hot spot is the <b>seconds-long temperature spike</b> you see in
+      Step 2’s overlaid curves and Step 3’s detailed trace. It repeats every time the pack is worked hard.</div>
+  </div>
+
+  <!-- DRAWING 3: heat vs current (I2R) -->
+  <div class="draw">
+    <h3>3 · Why it runs hot — same current, more heat</h3>
+    <figure>
+      <svg viewBox="0 0 720 190" role="img" aria-label="The same current through a higher internal resistance produces more heat, following heat equals current squared times resistance">
+        <!-- healthy path -->
+        <text x="60" y="40" font-family="IBM Plex Mono" font-size="11" fill="var(--ok)">healthy cell</text>
+        <line x1="60" y1="60" x2="300" y2="60" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar3)"/>
+        <text x="150" y="52" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="currentColor">same current I</text>
+        <rect x="150" y="70" width="60" height="26" rx="4" fill="none" stroke="var(--ok)" stroke-width="1.5"/>
+        <text x="180" y="87" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--ok)">low R</text>
+        <text x="340" y="64" font-family="IBM Plex Mono" font-size="12" fill="var(--ok)">→ little heat</text>
+
+        <!-- failing path -->
+        <text x="60" y="130" font-family="IBM Plex Mono" font-size="11" fill="var(--hot)">failing cell</text>
+        <line x1="60" y1="150" x2="300" y2="150" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar3)"/>
+        <text x="150" y="142" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="currentColor">same current I</text>
+        <rect x="150" y="160" width="60" height="26" rx="4" fill="none" stroke="var(--hot)" stroke-width="2.2"/>
+        <text x="180" y="177" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--hot)">HIGH R</text>
+        <text x="340" y="154" font-family="IBM Plex Mono" font-size="12" fill="var(--hot)">→ much more heat</text>
+
+        <!-- equation -->
+        <rect x="480" y="70" width="200" height="80" rx="10" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <text x="580" y="104" text-anchor="middle" font-family="IBM Plex Mono" font-size="20" fill="currentColor">heat = I²·R</text>
+        <text x="580" y="130" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">R up → heat up, same I</text>
+        <defs><marker id="ar3" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <polygon points="0,0 9,4.5 0,9" fill="currentColor"/></marker></defs>
+      </svg>
+      <figcaption>Heat produced in a cell is current squared times resistance (I²·R). The failing cell
+        carries the <em>same</em> current the rest of the pack does, but its higher internal resistance
+        turns more of that current into heat.</figcaption>
+    </figure>
+    <div class="reads">In the data: this is why an outlier can run hot <b>at a normal state of charge and
+      load</b> — the density map (Step 1) places it high on the temperature axis even where healthy cars
+      sit cool, because the heat comes from the defect, not from how hard the car is being driven.</div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Tool by tool, step by step</div>
+  <h2>The same three steps in Tableau, Power BI and Qlik</h2>
+  <p class="sub">All three are strong BI tools. The gap here is narrow and specific. We take each
+    workflow step in turn. For each tool, one short line says what happens and why — traceable back
+    to how that tool is built.</p>
 
   <div class="legend">
-    <span><i style="background:var(--hot)"></i> not possible cleanly</span>
-    <span><i style="background:var(--warm)"></i> partial / degraded</span>
     <span><i style="background:var(--ok)"></i> works</span>
+    <span><i style="background:var(--warm)"></i> partial / degraded</span>
+    <span><i style="background:var(--hot)"></i> not possible cleanly</span>
   </div>
 
-  <div class="tool">
-    <h3>Tableau</h3>
-    <p class="arch">Renders from a resident Hyper extract (or live connection). Interactions filter marks already drawn.</p>
-    <ul>
-      <li class="no"><span class="mk">✕</span><div><b>Step 1 — full-resolution density.</b> To stay interactive it bins into a coarse hexbin; a lone hot cell is pooled into a big bin and disappears. You see an <b>aggregated</b> map, not the outlier.</div></li>
-      <li class="no"><span class="mk">✕</span><div><b>Step 2 — thousands of overlaid raw curves.</b> Beyond the mark renderer, so it falls back to an aggregated percentile band. The individual failing curve’s <b>shape is gone</b>.</div></li>
-      <li class="part"><span class="mk">~</span><div><b>Step 2 — lasso → fetch raw members.</b> The lasso selects marks <b>already in the extract</b>; it cannot lazily fetch un-extracted raw rows. To show raw detail you must pre-extract it — which is what makes it slow.</div></li>
-      <li class="part"><span class="mk">~</span><div><b>Step 3 — one vehicle’s 100k raw points.</b> Possible only if those rows were extracted up front; the extract then balloons.</div></li>
-    </ul>
+  <!-- STEP 1 -->
+  <div class="cmp-step">
+    <p class="h">Step 1</p>
+    <h3>Show the full-resolution density of every raw sample</h3>
+    <div class="cmp">
+      <div class="r app yes"><span class="tn">Databricks App</span><span class="mk">✓</span><p>Bins every raw sample in the lakehouse. The outlier cell is drawn.</p></div>
+      <div class="r no"><span class="tn">Tableau</span><span class="mk">✕</span><p>Bins into a coarse hexbin to stay fast. The lone hot cell is pooled away.</p></div>
+      <div class="r no"><span class="tn">Power BI</span><span class="mk">✕</span><p>Caps a scatter at ~3.5k points (~10k sampled). It drops the rare cell.</p></div>
+      <div class="r no"><span class="tn">Qlik</span><span class="mk">✕</span><p>Chart engine caps points too. At fleet scale it aggregates the cell away.</p></div>
+    </div>
   </div>
 
-  <div class="tool">
-    <h3>Power BI</h3>
-    <p class="arch">Renders from an imported in-memory model (or DirectQuery). Visuals cap rendered points and sample beyond it.</p>
-    <ul>
-      <li class="no"><span class="mk">✕</span><div><b>Step 1 — full-resolution density.</b> Scatter/line visuals render only a few thousand points (~3.5k default, ~10k with high-density sampling) and <b>sample</b> the rest — the faint outlier cells are exactly what sampling drops.</div></li>
-      <li class="no"><span class="mk">✕</span><div><b>Step 2 — hundreds of overlaid raw curves.</b> The point cap and the line visual’s aggregation make a true raw overlay impossible; it summarizes.</div></li>
-      <li class="no"><span class="mk">✕</span><div><b>Step 2 — lasso → server-side raw fetch.</b> No native rectangle-brush that pushes a predicate to the source and returns raw rows on demand; cross-filtering runs on the loaded model.</div></li>
-      <li class="part"><span class="mk">~</span><div><b>Step 3 — one vehicle in full.</b> DirectQuery can fetch a single vehicle, but the visual still caps/samples the points, so the full 10 Hz trace is thinned.</div></li>
-    </ul>
+  <!-- STEP 2a -->
+  <div class="cmp-step">
+    <p class="h">Step 2 · the lasso</p>
+    <h3>Turn the rectangle into a fetch of raw rows from the source</h3>
+    <div class="cmp">
+      <div class="r app yes"><span class="tn">Databricks App</span><span class="mk">✓</span><p>The box becomes a <span class="mono">WHERE</span> query. It pulls raw rows on demand.</p></div>
+      <div class="r part"><span class="tn">Tableau</span><span class="mk">~</span><p>The lasso only selects marks already in the extract. It cannot fetch new raw rows.</p></div>
+      <div class="r no"><span class="tn">Power BI</span><span class="mk">✕</span><p>No native brush that pushes a predicate to the source. Filtering runs on the loaded model.</p></div>
+      <div class="r part"><span class="tn">Qlik</span><span class="mk">~</span><p>Selection is great, but only over data already loaded in memory. Not a lakehouse fetch.</p></div>
+    </div>
   </div>
 
-  <div class="tool">
-    <h3>Qlik</h3>
-    <p class="arch">In-memory associative engine. Strong associative filtering, but data must be loaded into the model and charts cap rendered points.</p>
-    <ul>
-      <li class="no"><span class="mk">✕</span><div><b>Step 1 — full-resolution density.</b> The chart engine caps rendered points; at fleet scale it aggregates, so the outlier cell is smeared away like the others.</div></li>
-      <li class="no"><span class="mk">✕</span><div><b>Step 2 — thousands of overlaid raw curves.</b> Same rendering ceiling — an honest raw overlay of hundreds of vehicles is not feasible.</div></li>
-      <li class="part"><span class="mk">~</span><div><b>Lasso → raw fetch.</b> Associative selection is excellent <b>within the loaded model</b>, but it does not lazily pull un-loaded raw rows from the lakehouse; the raw grain has to be in memory first.</div></li>
-      <li class="part"><span class="mk">~</span><div><b>Fleet-scale raw in memory.</b> Holding a billion raw rows in the in-memory model is costly and defeats the point of scaling on the lake.</div></li>
-    </ul>
+  <!-- STEP 2b -->
+  <div class="cmp-step">
+    <p class="h">Step 2 · the overlay</p>
+    <h3>Overlay the sampled vehicles’ raw curves, one line each</h3>
+    <div class="cmp">
+      <div class="r app yes"><span class="tn">Databricks App</span><span class="mk">✓</span><p>Draws each sampled vehicle’s raw trace. The failing curve’s shape is visible.</p></div>
+      <div class="r no"><span class="tn">Tableau</span><span class="mk">✕</span><p>Too many marks. It falls back to a percentile band. The individual shape is lost.</p></div>
+      <div class="r no"><span class="tn">Power BI</span><span class="mk">✕</span><p>Point cap plus line aggregation. A true raw overlay is not possible.</p></div>
+      <div class="r no"><span class="tn">Qlik</span><span class="mk">✕</span><p>Same rendering ceiling. Hundreds of raw curves cannot be drawn honestly.</p></div>
+    </div>
   </div>
 
-  <p>The Databricks App does all three: the density is a full-resolution histogram computed in the
-    lakehouse; the lasso becomes a <span class="mono">WHERE soc BETWEEN … AND temp BETWEEN …</span>
-    predicate that fetches raw rows for the sampled vehicles on demand; and the single-vehicle drill
-    pulls that car’s full raw trace — none of it resident in the browser.</p>
+  <!-- STEP 3 -->
+  <div class="cmp-step">
+    <p class="h">Step 3</p>
+    <h3>Drill to one vehicle’s full 10 Hz raw trace (~100k points)</h3>
+    <div class="cmp">
+      <div class="r app yes"><span class="tn">Databricks App</span><span class="mk">✓</span><p>Fetches that one vehicle’s every raw point on click. Nothing pre-loaded.</p></div>
+      <div class="r part"><span class="tn">Tableau</span><span class="mk">~</span><p>Works only if those rows were extracted up front. The extract then balloons.</p></div>
+      <div class="r part"><span class="tn">Power BI</span><span class="mk">~</span><p>DirectQuery can fetch the vehicle, but the visual still caps and thins the points.</p></div>
+      <div class="r part"><span class="tn">Qlik</span><span class="mk">~</span><p>The raw points must be in the in-memory model first, and the chart still caps them.</p></div>
+    </div>
+  </div>
+
+  <p style="margin-top:26px"><strong>The one root cause.</strong> Tableau, Power BI and Qlik all keep
+    granular data <em>resident</em> — a Hyper extract, an imported model, an in-memory table — and can
+    render only a few thousand marks. So they must summarize to stay fast, and their lasso works over
+    what is already loaded. The App keeps the data in the lakehouse: it renders a full-resolution
+    aggregate, and every lasso is a fresh bounded query that fetches only the raw rows that step needs.</p>
 </section>
 
 <section>
