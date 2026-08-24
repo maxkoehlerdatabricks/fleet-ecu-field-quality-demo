@@ -47,6 +47,17 @@ tab_css = """
 .define ul{margin:6px 0 10px;padding-left:20px}
 .define li{font-size:14px;color:var(--ink-soft);margin:3px 0}
 .define b{color:var(--ink)}
+.modes{margin:16px 0 6px}
+.modes table{width:100%;border-collapse:collapse;font-size:13.5px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.modes th{text-align:left;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.03em;
+  text-transform:uppercase;color:var(--slate);font-weight:600;padding:10px 12px;
+  background:color-mix(in srgb,var(--ground) 55%,var(--panel));border-bottom:1px solid var(--line);vertical-align:bottom}
+.modes td{padding:10px 12px;border-bottom:1px solid var(--line);color:var(--ink-soft);vertical-align:top}
+.modes td.tl{font-weight:600;color:var(--ink);white-space:nowrap}
+.modes tr:last-child td{border-bottom:none}
+.modes td b{color:var(--ink)}
+.modes-note{font-size:13.5px;color:var(--ink-soft);margin:12px 2px 0}
+.modes-note b{color:var(--ink)}
 .drawfig{margin:22px 0 6px}
 .drawfig svg{width:100%;height:auto;display:block;border-radius:12px;
   background:color-mix(in srgb,var(--ground) 55%,var(--panel));border:1px solid var(--line);padding:8px}
@@ -237,24 +248,34 @@ tab2 = '''<div class="panel-doc" id="tab-tools">
     Enterprise. By default each serves interactive charts from a <em>resident copy</em>, and each
     renders only a few thousand marks per chart.</p>
 
-  <div class="define">
-    <p><b>What the “resident copy” is, precisely:</b> a second, materialized copy of the data held
-      <em>on the BI server</em> and kept in sync with the source by scheduled refresh jobs.</p>
-    <ul>
-      <li><b>Tableau Server</b> — a published <b>Hyper extract</b> on the server, rebuilt by scheduled extract refreshes.</li>
-      <li><b>Power BI Service</b> — an <b>Import semantic model</b> loaded into the capacity’s in-memory (VertiPaq) engine, rebuilt by scheduled dataset refreshes.</li>
-      <li><b>Qlik Sense Enterprise</b> — a QVF <b>app loaded into the engine’s RAM</b>, rebuilt by scheduled reload tasks.</li>
-    </ul>
-    <p>So it is a governed <em>duplicate</em> of the data that must be capacity-sized, is only current
-      as of the last refresh, and grows — and slows — as the fleet grows.</p>
+  <p><b>What the “resident copy” is:</b> a second, materialized copy of the data held <em>on the BI
+    server</em> and kept in sync with the source by scheduled refresh jobs. Each tool has two modes —
+    pre-load the copy, or query the source live and hold no copy:</p>
+
+  <div class="modes">
+    <table>
+      <thead><tr><th>Tool</th><th>Pre-loaded &mdash; a resident copy</th><th>DirectQuery / live &mdash; no resident copy</th></tr></thead>
+      <tbody>
+        <tr><td class="tl">Tableau Server</td>
+            <td>Published <b>Hyper extract</b> on the server; rebuilt by scheduled extract refreshes.</td>
+            <td><b>Live connection</b>: each interaction queries the source; nothing materialized on the server.</td></tr>
+        <tr><td class="tl">Power BI Service</td>
+            <td><b>Import</b> semantic model in the capacity’s in-memory VertiPaq engine; scheduled dataset refreshes.</td>
+            <td><b>DirectQuery</b>: SQL sent to the source per interaction; no import model held.</td></tr>
+        <tr><td class="tl">Qlik Sense Enterprise</td>
+            <td>QVF <b>app loaded into the engine’s RAM</b>; scheduled reload tasks.</td>
+            <td><b>Direct Query / ODAG</b>: queries pushed to the source; not held in the in-memory engine.</td></tr>
+      </tbody>
+    </table>
+    <p class="modes-note">Pre-loaded = a governed <b>duplicate</b> that must be capacity-sized, is only
+      current as of the last refresh, and grows and slows as the fleet grows. DirectQuery / live drops
+      the copy but adds a source round-trip on every user’s every interaction. <b>Either way, the chart
+      still caps the marks it draws</b> — so neither mode can render the full plot.</p>
   </div>
 
-  <p>Each product also has a query-live mode (Tableau <em>live connection</em>, Power BI
-    <em>DirectQuery</em>, Qlik <em>Direct Query / ODAG</em>) that avoids the resident copy — but the
-    chart still caps the marks it draws, and every user’s every interaction now round-trips to the
-    source. The Databricks App holds <em>no</em> materialized copy on any server: it reads the
-    lakehouse directly and fetches only what each step needs (its one small overview aggregate is a
-    governed table in the lakehouse, not a separate resident engine to size and refresh).</p>
+  <p>The Databricks App holds <em>no</em> materialized copy on any server: it reads the lakehouse
+    directly and fetches only what each step needs (its one small overview aggregate is a governed
+    table in the lakehouse, not a separate resident engine to size and refresh).</p>
   <figure class="drawfig">
     <svg viewBox="0 0 720 210" role="img" aria-label="Classic BI tools load a resident copy of the data and render a capped number of marks; the Databricks App queries the lakehouse and fetches only what each step needs">
       <!-- BI side -->
@@ -323,6 +344,9 @@ tab2 = '''<div class="panel-doc" id="tab-tools">
       <div class="r no"><span class="tn">Power BI</span><span class="mk">✕</span><p>No native brush that pushes a predicate to the source. Filtering runs on the loaded model.</p></div>
       <div class="r part"><span class="tn">Qlik</span><span class="mk">~</span><p>Selection is great, but only over data already loaded in memory. Not a lakehouse fetch.</p></div>
     </div>
+    <p class="modes-note">In <b>DirectQuery / live</b> mode a selection <em>can</em> reach the source —
+      but it feeds a chart that still caps marks, so the fetched raw rows can’t all be drawn; the App’s
+      lasso both fetches and renders them.</p>
   </div>
 
   <div class="cmp-step"><p class="h">Step 2 · the overlay</p><h3>Overlay the sampled vehicles’ raw curves, one line each</h3>
