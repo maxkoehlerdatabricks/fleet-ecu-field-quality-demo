@@ -150,6 +150,13 @@ grid = grid.withColumn(
 raw = grid.select(
     "vin",
     "ts",
+    # Persist the two derived columns the dashboard needs, so the App never recomputes
+    # unix_timestamp(...) on a full scan:
+    #   day   = trip date (also the curve/phase trace identity together with vin)
+    #   t_sec = seconds into the trip (0-based). Matches the App's former on-the-fly formula
+    #           exactly because the simulated trip starts at 08:00 each day.
+    F.to_date("ts").alias("day"),
+    F.col("t_sec").cast("int").alias("t_sec"),
     F.round("odometer_km", 1).alias("odometer_km"),
     F.round("soc_pct", 2).alias("soc_pct"),
     F.round("cell_temp_max_c", 2).alias("cell_temp_max_c"),
@@ -159,14 +166,24 @@ raw = grid.select(
     "event_type",
 )
 
+# Liquid clustering by (vin, cell_temp_max_c):
+#   - vin            -> data-skipping for the brush trace-fetch and single-vehicle drill
+#                       (WHERE vin IN (...) / WHERE vin = ...), the app's hottest lookups.
+#   - cell_temp_max_c -> data-skipping for the temperature-range filters in the brush queries.
+# Liquid clustering (not partitioning) because vin is high-cardinality: partitioning by it
+# would make one tiny file per car. CLUSTER BY adapts as the table grows.
 (raw.write
     .mode("overwrite")
     .option("overwriteSchema", "true")
-    .partitionBy("event_type")            # small set: cheap partitioning; scale -> partition by date(ts)
+    .clusterBy("vin", "cell_temp_max_c")
     .saveAsTable(RAW_TABLE))
 
+# Compact + build clustering/skipping stats so the very first dashboard queries are already fast.
+spark.sql(f"OPTIMIZE {RAW_TABLE}")
+spark.sql(f"ANALYZE TABLE {RAW_TABLE} COMPUTE STATISTICS FOR ALL COLUMNS")
+
 n = spark.table(RAW_TABLE).count()
-print(f"{RAW_TABLE}: {n:,} raw rows")
+print(f"{RAW_TABLE}: {n:,} raw rows, clustered by (vin, cell_temp_max_c)")
 
 # COMMAND ----------
 

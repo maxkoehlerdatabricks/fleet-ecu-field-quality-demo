@@ -208,8 +208,31 @@ panel appears with that car's full-resolution raw scatter (axes match the active
 | `bms_band` | population percentile band per odometer bucket | right-panel overlay |
 | `vehicle` | one row per vin (dim) | joins / labels |
 
-The heavy `bms_signal` is only fully scanned on brush, bounded to the VINs inside the box — that
-bounded pushdown is the App's speed advantage over an extract-based tool.
+The heavy `bms_signal` is only scanned bounded to the VINs the query needs — that bounded
+pushdown is the App's speed advantage over an extract-based tool.
+
+### Table optimizations (tuned for the dashboard queries)
+
+`bms_signal` is built for the exact access patterns the App uses:
+
+- **Persisted derived columns `day` and `t_sec`.** The overview and brush queries filter/plot on
+  seconds-into-trip and trip date; persisting them means the App never recomputes
+  `unix_timestamp(...)` on a scan.
+- **Liquid clustering `CLUSTER BY (vin, cell_temp_max_c)`.** `vin` gives data-skipping for the
+  brush trace-fetch and single-vehicle drill (`WHERE vin IN (...)` / `= ...`); `cell_temp_max_c`
+  skips for the temperature-range filters. Liquid (not partitioning) because `vin` is
+  high-cardinality — partitioning by it would make one tiny file per car. `01_simulate_raw` runs
+  `OPTIMIZE` + `ANALYZE ... COMPUTE STATISTICS` after the write so the first queries are fast.
+- **Per-vin "who is hot" comes from the small `bms_daily_vin` aggregate**, not a raw scan, so the
+  overview only reads raw rows for the cars it actually draws.
+
+### Overview sampling at fleet scale
+
+Overlaying one raw curve per car is unreadable — and too many points for the browser — past a few
+dozen cars. The overview therefore samples the fleet: it **always keeps the hot cars** (the story)
+and fills up to `OVERVIEW_MAX_CARS` (default 40, an app env var) with a deterministic hash sample of
+healthy cars. The brush and single-vehicle drill always hit the **full** raw table, so nothing is
+hidden — only the overview backbone is subsampled.
 
 ---
 

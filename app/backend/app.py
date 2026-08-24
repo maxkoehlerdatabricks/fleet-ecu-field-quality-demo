@@ -36,6 +36,13 @@ VEH     = f"{CATALOG}.{SCHEMA}.vehicle"
 HOT_C   = 55.0   # hot threshold (deg C). MUST match HOT_THRESHOLD_C in 00_config.py
                  # (the App is a separate deployed service and can't import the notebook config).
 
+# Overview curve/phase plots overlay one line per car-day. Past a few dozen cars that is both
+# unreadable and too many points for the browser, so we cap how many cars the OVERVIEW samples.
+# We ALWAYS keep the hot cars (the story) and fill the rest with a deterministic hash sample of
+# healthy cars so the ribbon still looks dense. The brush + single-vehicle drill always hit the
+# full raw table, so nothing is hidden -- only the overview backbone is subsampled.
+OVERVIEW_MAX_CARS = int(os.getenv("OVERVIEW_MAX_CARS", "40"))
+
 _wh = (os.getenv("DATABRICKS_WAREHOUSE_HTTP_PATH") or os.getenv("SQL_HTTP_PATH")
        or os.getenv("WAREHOUSE_ID", ""))
 WAREHOUSE_HTTP_PATH = _wh if _wh.startswith("/sql/") else f"/sql/1.0/warehouses/{_wh}"
@@ -83,26 +90,22 @@ def _json_safe(rows):
 @lru_cache(maxsize=1)
 def _curves_cached():
     """View A: overlaid raw cell-temp curves, downsampled to ~1 pt/sec for the fleet overview."""
+    # Per-vin hot summary comes from the small bms_daily_vin aggregate (200 rows), NOT a raw scan.
+    # We only touch the raw table for the actual backbone points of the selected cars.
     rows = _query(f"""
-        WITH s AS (
-            SELECT vin, ts, cell_temp_max_c,
-                   date(ts) AS day,
-                   unix_timestamp(ts) - unix_timestamp(date_trunc('DAY', ts)) - 8*3600 AS t_sec
-            FROM {RAW}
+        WITH vhot AS (   -- per-vin hot summary from the pre-built aggregate
+            SELECT vin, round(sum(hot_seconds),1) AS hot_seconds, round(max(cell_temp_max),1) AS peak_c
+            FROM {DAILY} GROUP BY vin
         ),
-        ds AS (   -- coarse backbone for the overview (raw resolution kept on brush): ~1 pt / 3s
-            SELECT vin, day, t_sec, cell_temp_max_c
-            FROM s WHERE t_sec % 30 = 0
-        ),
-        hot AS (
-            SELECT vin, date(ts) AS day,
-                   round(sum(CASE WHEN cell_temp_max_c > {HOT_C} THEN 0.1 ELSE 0 END),1) AS hot_seconds,
-                   round(max(cell_temp_max_c),1) AS peak_c
-            FROM {RAW} GROUP BY vin, date(ts)
+        shown AS (       -- always keep hot cars; fill up to OVERVIEW_MAX_CARS with a hash sample
+            SELECT vin, hot_seconds, peak_c FROM vhot
+            WHERE hot_seconds > 0
+               OR pmod(abs(hash(vin)), (SELECT count(*) FROM vhot)) < {OVERVIEW_MAX_CARS}
         )
-        SELECT ds.vin, ds.day, ds.t_sec, ds.cell_temp_max_c, h.hot_seconds, h.peak_c
-        FROM ds JOIN hot h ON ds.vin=h.vin AND ds.day=h.day
-        ORDER BY ds.vin, ds.day, ds.t_sec
+        SELECT r.vin, r.day, r.t_sec, r.cell_temp_max_c, s.hot_seconds, s.peak_c
+        FROM {RAW} r JOIN shown s ON r.vin = s.vin
+        WHERE r.t_sec % 30 = 0
+        ORDER BY r.vin, r.day, r.t_sec
     """)
     return _json_safe(rows)
 
@@ -137,20 +140,18 @@ def density():
 def _phase_cached():
     """View C: phase-portrait trajectories, pack_current vs cell_temp, per (vin, day), downsampled."""
     rows = _query(f"""
-        WITH s AS (
-            SELECT vin, date(ts) AS day, ts, pack_current_a, cell_temp_max_c,
-                   row_number() OVER (PARTITION BY vin, date(ts) ORDER BY ts) AS rn
-            FROM {RAW}
+        WITH vhot AS (
+            SELECT vin, round(sum(hot_seconds),1) AS hot_seconds FROM {DAILY} GROUP BY vin
         ),
-        hot AS (
-            SELECT vin, date(ts) AS day,
-                   round(sum(CASE WHEN cell_temp_max_c > {HOT_C} THEN 0.1 ELSE 0 END),1) AS hot_seconds
-            FROM {RAW} GROUP BY vin, date(ts)
+        shown AS (       -- same fleet subsample as the curves overview
+            SELECT vin, hot_seconds FROM vhot
+            WHERE hot_seconds > 0
+               OR pmod(abs(hash(vin)), (SELECT count(*) FROM vhot)) < {OVERVIEW_MAX_CARS}
         )
-        SELECT s.vin, s.day, s.pack_current_a, s.cell_temp_max_c, h.hot_seconds
-        FROM s JOIN hot h ON s.vin=h.vin AND s.day=h.day
-        WHERE s.rn % 60 = 0
-        ORDER BY s.vin, s.day, s.rn
+        SELECT r.vin, r.day, r.pack_current_a, r.cell_temp_max_c, s.hot_seconds
+        FROM {RAW} r JOIN shown s ON r.vin = s.vin
+        WHERE r.t_sec % 30 = 0
+        ORDER BY r.vin, r.day, r.t_sec
     """)
     return _json_safe(rows)
 
@@ -178,48 +179,51 @@ def brush(box: Box):
     if box.view == "curves":
         # member = any (vin,day) with a raw sample inside (t_sec in [x], temp in [y])
         members = _query(f"""
-            SELECT DISTINCT vin, date(ts) AS day FROM (
-                SELECT vin, ts, cell_temp_max_c,
-                       unix_timestamp(ts) - unix_timestamp(date_trunc('DAY', ts)) - 8*3600 AS t_sec
-                FROM {RAW})
+            SELECT DISTINCT vin, day FROM {RAW}
             WHERE t_sec BETWEEN :lx AND :hx AND cell_temp_max_c BETWEEN :ly AND :hy
         """, {"lx": lo_x, "hx": hi_x, "ly": lo_y, "hy": hi_y})
     elif box.view == "phase":
         members = _query(f"""
-            SELECT DISTINCT vin, date(ts) AS day FROM {RAW}
+            SELECT DISTINCT vin, day FROM {RAW}
             WHERE pack_current_a BETWEEN :lx AND :hx AND cell_temp_max_c BETWEEN :ly AND :hy
         """, {"lx": lo_x, "hx": hi_x, "ly": lo_y, "hy": hi_y})
     else:  # density: box in (SoC, temp)
         members = _query(f"""
-            SELECT DISTINCT vin, date(ts) AS day FROM {RAW}
+            SELECT DISTINCT vin, day FROM {RAW}
             WHERE soc_pct BETWEEN :lx AND :hx AND cell_temp_max_c BETWEEN :ly AND :hy
         """, {"lx": lo_x, "hx": hi_x, "ly": lo_y, "hy": hi_y})
 
-    pairs = [(m["vin"], str(m["day"])) for m in members][:12]
-    if not pairs:
-        return JSONResponse({"traces": [], "suspects": []})
+    # Cap the number of member vins whose RAW traces we ship (keeps the browser + payload sane
+    # no matter how wide the brush is). The suspects table below still summarizes ALL members.
+    uniq_vins = list({m["vin"] for m in members})[:6]
+    if not uniq_vins:
+        return JSONResponse({"traces": [], "suspects": [], "n_members": 0})
 
-    vin_list = ",".join(f"'{v}'" for v, _ in {(v, d) for v, d in pairs})
-    # RAW member traces: full resolution around hot events + 1-in-10 backbone
+    vin_list = ",".join(f"'{v}'" for v in uniq_vins)
+    # RAW member traces: keep FULL resolution around the hot events (>=48C, the diagnostic part)
+    # plus a sparse 1-in-20 backbone so the baseline line stays continuous. Still raw rows.
     traces = _query(f"""
         SELECT vin, ts, cell_temp_max_c FROM (
-            SELECT vin, ts, cell_temp_max_c,
-                   row_number() OVER (PARTITION BY vin ORDER BY ts) AS rn
+            SELECT vin, ts, cell_temp_max_c, t_sec
             FROM {RAW} WHERE vin IN ({vin_list}))
-        WHERE cell_temp_max_c >= 48 OR rn % 10 = 0
+        WHERE cell_temp_max_c >= 48 OR t_sec % 20 = 0
         ORDER BY vin, ts
     """)
-    # suspects table: forensic detail per member vin
+    # suspects table: forensic detail for ALL brushed members (capped at 40 rows for the table),
+    # worst-first. This summarizes the whole selection, not just the vins we drew traces for.
+    all_vins = list({m["vin"] for m in members})[:40]
+    all_list = ",".join(f"'{v}'" for v in all_vins)
     suspects = _query(f"""
         SELECT vin,
                round(max(odometer_km))                                       AS odometer_km,
                round(max(cell_temp_max_c),1)                                 AS peak_temp_c,
                round(sum(CASE WHEN cell_temp_max_c > {HOT_C} THEN 0.1 ELSE 0 END),1) AS hot_seconds,
                round(min(cell_voltage_min_v),3)                              AS min_voltage_v
-        FROM {RAW} WHERE vin IN ({vin_list})
+        FROM {RAW} WHERE vin IN ({all_list})
         GROUP BY vin ORDER BY hot_seconds DESC
     """)
-    return JSONResponse({"traces": _json_safe(traces), "suspects": _json_safe(suspects)})
+    return JSONResponse({"traces": _json_safe(traces), "suspects": _json_safe(suspects),
+                         "n_members": len({m["vin"] for m in members}), "n_traced": len(uniq_vins)})
 
 
 @app.get("/api/vehicle")
@@ -227,8 +231,7 @@ def vehicle(vin: str):
     """Bottom plot: ONE vehicle's RAW samples at full resolution. The frontend picks which
     two columns to plot based on the active view (temp vs time / SoC / pack_current)."""
     rows = _query(f"""
-        SELECT ts,
-               unix_timestamp(ts) - unix_timestamp(date_trunc('DAY', ts)) - 8*3600 AS t_sec,
+        SELECT ts, t_sec,
                soc_pct, pack_current_a, cell_temp_max_c, cell_voltage_min_v, event_type
         FROM {RAW}
         WHERE vin = :vin
@@ -241,14 +244,10 @@ def vehicle(vin: str):
 def band():
     """Population percentile band for the right-panel overlay (aggregated -- what Tableau is limited to)."""
     rows = _query(f"""
-        WITH s AS (
-            SELECT cell_temp_max_c,
-                   unix_timestamp(ts) - unix_timestamp(date_trunc('DAY', ts)) - 8*3600 AS t_sec
-            FROM {RAW})
         SELECT floor(t_sec/30)*30 AS t_sec,
                round(percentile(cell_temp_max_c,0.5),2)  AS p50,
                round(percentile(cell_temp_max_c,0.95),2) AS p95
-        FROM s GROUP BY 1 ORDER BY 1
+        FROM {RAW} GROUP BY 1 ORDER BY 1
     """)
     return JSONResponse({"band": _json_safe(rows)})
 

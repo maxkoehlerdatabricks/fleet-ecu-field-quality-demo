@@ -39,7 +39,7 @@ CREATE_CATALOG_IF_MISSING = True
 
 # COMMAND ----------
 
-N_CARS  = 20      # number of vehicles in the fleet
+N_CARS  = 200     # number of vehicles in the fleet
 N_DAYS  = 3       # days of history per vehicle
 HZ      = 10      # sample rate of the fast signals (samples per second)
 DRIVE_H = 1.0     # hours driven per car per day (one trip/day for the small set)
