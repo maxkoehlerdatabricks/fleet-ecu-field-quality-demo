@@ -251,6 +251,15 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
 .applayout .pillrow span{font-size:10.5px;font-family:"IBM Plex Mono",monospace;
   background:color-mix(in srgb,var(--ground) 60%,var(--panel));border:1px solid var(--line);
   border-radius:10px;padding:2px 8px;color:var(--slate)}
+.applayout .lyr.ctrl{border-left:3px solid var(--cool)}
+.slidermock{display:flex;align-items:center;gap:12px;margin-top:10px;font-family:"IBM Plex Mono",monospace;font-size:12px}
+.slidermock .lab{color:var(--slate)}
+.slidermock .track{position:relative;flex:1;max-width:260px;height:6px;border-radius:3px;
+  background:var(--line)}
+.slidermock .fill{position:absolute;left:0;top:0;bottom:0;width:30%;border-radius:3px;background:var(--cool)}
+.slidermock .knob{position:absolute;left:30%;top:50%;transform:translate(-50%,-50%);
+  width:14px;height:14px;border-radius:50%;background:var(--cool);border:2px solid var(--panel)}
+.slidermock .val{font-weight:600;color:var(--cool);min-width:2ch;text-align:right}
 .verdict{background:color-mix(in srgb,var(--ok) 9%,var(--panel));
   border:1px solid color-mix(in srgb,var(--ok) 30%,var(--line));border-radius:12px;
   padding:20px 24px;margin:26px 0;font-size:17px}
@@ -538,17 +547,29 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
       <p>Every raw sample from every vehicle is binned into a fine grid and colored by count. The fleet
         is one dense cloud; the eye goes to the faint hot cells floating above it — packs that reached
         temperatures no healthy battery should at that charge state. Nothing is averaged, so a rare
-        outlier still leaves its mark. A <b>sample-size slider</b> (default 30) sets how many vehicles
-        the next step will pull.</p>
+        outlier still leaves its mark.</p>
     </div>
     <div class="down">↓ &nbsp; box-select (lasso) the hot region</div>
+    <div class="lyr ctrl">
+      <div class="tag2">CONTROL · between the upper and middle plots</div>
+      <h4>Sample-size slider</h4>
+      <p>Before the raw curves are pulled, you set how many vehicles to bring down from the lasso’d
+        region. The slider defaults to <b>30</b> and takes the <em>N hottest</em> vehicles — trading
+        breadth for how much raw data the next step fetches and overlays.</p>
+      <div class="slidermock">
+        <span class="lab">sample size</span>
+        <span class="track"><span class="fill"></span><span class="knob"></span></span>
+        <span class="val">30</span>
+      </div>
+    </div>
+    <div class="down">↓ &nbsp; the N hottest vehicles</div>
     <div class="lyr">
       <div class="tag2">MIDDLE PLOT + TABLE · the sampled suspects</div>
       <h4>Overlaid raw curves + a forensic table</h4>
-      <p>The rectangle becomes a query. It takes the <em>N hottest</em> vehicles in the region and
-        fetches their <b>raw</b> temperature-vs-time traces on demand — overlaid, the failing pack’s
-        line peels upward in repeating spikes. Beside them, a table lists each sampled vehicle with its
-        peak temperature, seconds spent hot, mileage and lowest voltage — sortable evidence, worst first.</p>
+      <p>The N sampled vehicles’ <b>raw</b> temperature-vs-time traces are fetched on demand and
+        overlaid — the failing pack’s line peels upward in repeating spikes. Beside them, a table lists
+        each sampled vehicle with its peak temperature, seconds spent hot, mileage and lowest voltage —
+        sortable evidence, worst first.</p>
     </div>
     <div class="down">↓ &nbsp; click a row in the table</div>
     <div class="lyr">
@@ -579,40 +600,56 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
 <div class="wrap">
 
 <section>
-  <div class="eyebrow">The root difference</div>
-  <h2>Where the data lives decides what the tool can do</h2>
-  <p class="sub">Assume the deployed server products — Tableau Server, the Power BI Service, Qlik Sense
-    Enterprise. By default each serves interactive charts from a <em>resident copy</em>, and each
-    renders only a few thousand marks per chart.</p>
+  <div class="eyebrow">The root bottleneck</div>
+  <h2>The wall is the rendering cap, not where the data lives</h2>
+  <p class="sub">A chart can only draw so many marks — a few thousand — no matter how the tool is
+    connected. To keep a billion raw points inside that ceiling, <em>something</em> must reduce them
+    to a few thousand before they reach the screen. That reduction is where the outlier dies, and it
+    happens in <b>every</b> connection mode.</p>
 
-  <p><b>What the “resident copy” is:</b> a second, materialized copy of the data held <em>on the BI
-    server</em> and kept in sync with the source by scheduled refresh jobs. Each tool has two modes —
-    pre-load the copy, or query the source live and hold no copy:</p>
+  <p><b>Assume the server products</b> (Tableau Server, Power BI Service, Qlik Sense Enterprise). Each
+    connects one of two ways — pre-load a resident copy, or query the source live — and it is worth
+    being precise about what sits in that copy, because the trap is the <em>grain</em> you load it at.</p>
 
   <div class="modes">
     <table>
-      <thead><tr><th>Tool</th><th>Pre-loaded &mdash; a resident copy</th><th>DirectQuery / live &mdash; no resident copy</th></tr></thead>
+      <thead><tr><th>Tool</th><th>Pre-loaded &mdash; a resident copy on the server</th><th>DirectQuery / live &mdash; no resident copy</th></tr></thead>
       <tbody>
         <tr><td class="tl">Tableau Server</td>
-            <td>Published <b>Hyper extract</b> on the server; rebuilt by scheduled extract refreshes.</td>
-            <td><b>Live connection</b>: each interaction queries the source; nothing materialized on the server.</td></tr>
+            <td>A published <b>Hyper extract</b> — the rows/columns you defined, at the grain you chose; scheduled refresh.</td>
+            <td><b>Live connection</b>: each interaction queries the source.</td></tr>
         <tr><td class="tl">Power BI Service</td>
-            <td><b>Import</b> semantic model in the capacity’s in-memory VertiPaq engine; scheduled dataset refreshes.</td>
-            <td><b>DirectQuery</b>: SQL sent to the source per interaction; no import model held.</td></tr>
+            <td>An <b>Import</b> model in the capacity’s in-memory VertiPaq engine (compressed columnar); scheduled refresh.</td>
+            <td><b>DirectQuery</b>: SQL sent to the source per interaction.</td></tr>
         <tr><td class="tl">Qlik Sense Enterprise</td>
-            <td>QVF <b>app loaded into the engine’s RAM</b>; scheduled reload tasks.</td>
-            <td><b>Direct Query / ODAG</b>: queries pushed to the source; not held in the in-memory engine.</td></tr>
+            <td>A QVF <b>app loaded into the engine’s RAM</b> (tables + associative symbol index); scheduled reload.</td>
+            <td><b>Direct Query / ODAG</b>: queries pushed to the source.</td></tr>
       </tbody>
     </table>
-    <p class="modes-note">Pre-loaded = a governed <b>duplicate</b> that must be capacity-sized, is only
-      current as of the last refresh, and grows and slows as the fleet grows. DirectQuery / live drops
-      the copy but adds a source round-trip on every user’s every interaction. <b>Either way, the chart
-      still caps the marks it draws</b> — so neither mode can render the full plot.</p>
   </div>
 
-  <p>The Databricks App holds <em>no</em> materialized copy on any server: it reads the lakehouse
-    directly and fetches only what each step needs (its one small overview aggregate is a governed
-    table in the lakehouse, not a separate resident engine to size and refresh).</p>
+  <div class="define">
+    <p><b>Why very large data is the bottleneck — the grain trap.</b> Whatever the mode, you face the
+      same fork, and both ends lose:</p>
+    <ul>
+      <li><b>Load / query at raw grain</b> (so you can see individual points): the resident copy becomes
+        the size of the raw data — tens of GB to TB in RAM/capacity, with refreshes that scale with the
+        data. It <em>doesn’t fit and doesn’t scale</em>. (DirectQuery avoids the copy, but the chart
+        still can’t render a billion marks, so the query is forced to aggregate anyway.)</li>
+      <li><b>Load / query pre-aggregated</b> (daily averages, percentiles): small, fast, scales fine —
+        <em>but the raw grain is gone</em>, so the individual outlier is no longer in the data the chart
+        can show.</li>
+    </ul>
+    <p>So the resident copy’s size is a real operational cost <em>only in the pre-load mode</em> —
+      DirectQuery removes it. But neither mode lets you <b>see</b> the raw outlier, because the
+      rendering cap forces a reduction to a few thousand marks either way. <b>That cap is the
+      mode-independent wall.</b></p>
+  </div>
+
+  <p>The Databricks App does not hit that wall: it never renders raw points in the browser. It computes
+    a <b>full-resolution aggregate in the warehouse</b> (a density that keeps the rare cell visible),
+    and fetches <b>raw rows on demand</b> only for a bounded selection. No resident copy to size, and
+    no few-thousand-mark ceiling on the overview.</p>
   <figure class="drawfig">
     <svg viewBox="0 0 720 210" role="img" aria-label="Classic BI tools load a resident copy of the data and render a capped number of marks; the Databricks App queries the lakehouse and fetches only what each step needs">
       <!-- BI side -->
@@ -717,9 +754,11 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
     <div class="row"><span class="tool-name">Qlik</span><div class="bar mid"><span style="width:65%"></span></div><span class="t">~9 s</span></div>
   </div>
   <div class="rtnote">Illustrative, for hundreds of vehicles / billions of raw samples. BI figures =
-    load a resident extract/model (or a slow DirectQuery round-trip) + first render; the App = a
-    pre-materialized aggregate from the warehouse. <b>The App stays flat as the fleet grows</b> (each
-    lasso is a bounded query); <b>BI degrades</b> (the resident copy grows with the data).</div>
+    pre-load a raw-grain resident extract/model (or a per-interaction DirectQuery round-trip) + first
+    render; the App = a pre-materialized aggregate from the warehouse. <b>The App stays flat as the
+    fleet grows</b> (each lasso is a bounded query). <b>Pre-load mode degrades</b> as the resident copy
+    grows; <b>DirectQuery mode</b> pays a source round-trip per interaction instead — different cost,
+    same ceiling on what the chart can draw.</div>
 </section>
 
 <section>
@@ -767,20 +806,23 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
       renders everything: it shows a full-resolution aggregate and fetches raw detail in bounded slices.</figcaption>
   </figure>
 
-  <p><strong>Two things break:</strong> <em>rendering</em> (no chart draws a billion marks) and
-    <em>residency</em> (the loaded copy grows with the data). The App avoids both — it keeps data in
-    the lakehouse and moves only a bounded, already-shaped result to the screen.</p>
+  <p><strong>The wall is rendering:</strong> no chart draws a billion marks, so the data must be
+    reduced to a few thousand before it’s shown — in every mode — and the outlier is what the reduction
+    drops. (Pre-load mode adds a second problem — a resident copy that grows with the data — but
+    DirectQuery removes that one and still hits the rendering wall.) The App sidesteps it: a
+    full-resolution aggregate for the overview, raw rows fetched on demand for a bounded selection.</p>
 </section>
 
 <section>
   <div class="eyebrow">The conclusion</div>
   <h2>Why it can only be the Databricks App</h2>
-  <p class="sub">The fidelity argument is decisive on its own — and the same architecture wins on the
-    operational points from tab 1 too.</p>
+  <p class="sub">One reason is decisive and mode-independent — fidelity. The others are real
+    operational benefits, but they apply to the pre-load mode (DirectQuery avoids them), so they are
+    the supporting case, not the core.</p>
   <div class="reasons">
-    <div class="rz"><h4>Fidelity</h4><p>Renders every raw sample and fetches raw detail on demand; BI must summarize.</p></div>
-    <div class="rz"><h4>Scalability</h4><p>More vehicles = bigger BI extract and slower refresh; the App’s bounded queries stay flat.</p></div>
-    <div class="rz"><h4>Maintenance</h4><p>No separate BI system to license, refresh and govern — it runs on the lakehouse you already have.</p></div>
+    <div class="rz" style="border-left-color:var(--hot)"><h4>Fidelity — the decisive one</h4><p>The chart’s few-thousand-mark cap forces BI to reduce a billion points to a summary <em>in every mode</em>, dropping the outlier. The App renders a full-resolution aggregate and fetches raw detail on demand.</p></div>
+    <div class="rz"><h4>Scalability</h4><p>In pre-load mode, more vehicles = a bigger resident copy and slower refresh; DirectQuery trades that for a per-click round-trip. The App’s bounded queries stay flat.</p></div>
+    <div class="rz"><h4>Maintenance</h4><p>No separate BI system to size, refresh and govern — it runs on the lakehouse you already have.</p></div>
     <div class="rz"><h4>Licensing</h4><p>No per-seat dashboard subscription; users are served on existing compute.</p></div>
   </div>
   <p class="verdict">The raw data <b>never leaves the lakehouse</b>: a full-resolution aggregate for the
