@@ -61,10 +61,34 @@ def _connect():
 
 
 def _query(q, params=None):
+    """Run a query, return rows. (Data path — bytes-scanned is captured separately by _query_m.)"""
     with _connect() as conn, conn.cursor() as cur:
         cur.execute(q, params or {})
         cols = [c[0] for c in cur.description]
         return [dict(zip(cols, r)) for r in cur.fetchall()]
+
+
+def _read_bytes(cur):
+    """Best-effort: pull bytes-scanned from the connector's query metrics. Returns None if this
+    connector version doesn't expose it (the frontend then just omits the 'scanned' figure)."""
+    try:
+        m = cur.query_metrics() if hasattr(cur, "query_metrics") else None
+        if m is None and hasattr(cur, "active_result_set"):
+            m = getattr(cur.active_result_set, "query_metrics", None)
+        if isinstance(m, dict):
+            return m.get("read_bytes") or m.get("bytesRead") or m.get("read_bytes_total")
+    except Exception:
+        pass
+    return None
+
+
+def _query_m(q, params=None):
+    """Like _query but also returns best-effort bytes-scanned: (rows, read_bytes|None)."""
+    with _connect() as conn, conn.cursor() as cur:
+        cur.execute(q, params or {})
+        cols = [c[0] for c in cur.description]
+        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+        return rows, _read_bytes(cur)
 
 
 def _json_safe(rows):
@@ -107,7 +131,7 @@ def _curves_cached():
         WHERE r.t_sec % 30 = 0
         ORDER BY r.vin, r.day, r.t_sec
     """)
-    return _json_safe(rows)
+    return {"rows": _json_safe(rows), "scanned_bytes": rb}
 
 
 @lru_cache(maxsize=1)
@@ -131,13 +155,14 @@ def stats():
 
 @app.get("/api/curves")
 def curves():
-    return JSONResponse({"curves": _curves_cached(), "hot_c": HOT_C})
+    c = _curves_cached()
+    return JSONResponse({"curves": c["rows"], "scanned_bytes": c["scanned_bytes"], "hot_c": HOT_C})
 
 
 @lru_cache(maxsize=1)
 def _density_cached():
     """View B: server-side 2D histogram of RAW samples over (SoC bucket, temp bucket)."""
-    rows = _query(f"""
+    rows, rb = _query_m(f"""
         SELECT
             floor(soc_pct/2)*2                AS soc_bin,
             floor(cell_temp_max_c/1)*1        AS temp_bin,
@@ -147,18 +172,19 @@ def _density_cached():
         GROUP BY 1,2
         ORDER BY 1,2
     """)
-    return _json_safe(rows)
+    return {"rows": _json_safe(rows), "scanned_bytes": rb}
 
 
 @app.get("/api/density")
 def density():
-    return JSONResponse({"cells": _density_cached(), "hot_c": HOT_C})
+    c = _density_cached()
+    return JSONResponse({"cells": c["rows"], "scanned_bytes": c["scanned_bytes"], "hot_c": HOT_C})
 
 
 @lru_cache(maxsize=1)
 def _phase_cached():
     """View C: phase-portrait trajectories, pack_current vs cell_temp, per (vin, day), downsampled."""
-    rows = _query(f"""
+    rows, rb = _query_m(f"""
         WITH vhot AS (
             SELECT vin, round(sum(hot_seconds),1) AS hot_seconds FROM {DAILY} GROUP BY vin
         ),
@@ -172,12 +198,13 @@ def _phase_cached():
         WHERE r.t_sec % 30 = 0
         ORDER BY r.vin, r.day, r.t_sec
     """)
-    return _json_safe(rows)
+    return {"rows": _json_safe(rows), "scanned_bytes": rb}
 
 
 @app.get("/api/phase")
 def phase():
-    return JSONResponse({"points": _phase_cached(), "hot_c": HOT_C})
+    c = _phase_cached()
+    return JSONResponse({"points": c["rows"], "scanned_bytes": c["scanned_bytes"], "hot_c": HOT_C})
 
 
 # ---------------------------------------------------------------------------
@@ -221,7 +248,7 @@ def brush(box: Box):
     vin_list = ",".join(f"'{v}'" for v in uniq_vins)
     # RAW member traces: keep FULL resolution around the hot events (>=48C, the diagnostic part)
     # plus a sparse 1-in-20 backbone so the baseline line stays continuous. Still raw rows.
-    traces = _query(f"""
+    traces, rb = _query_m(f"""
         SELECT vin, ts, cell_temp_max_c FROM (
             SELECT vin, ts, cell_temp_max_c, t_sec
             FROM {RAW} WHERE vin IN ({vin_list}))
@@ -242,21 +269,22 @@ def brush(box: Box):
         GROUP BY vin ORDER BY hot_seconds DESC
     """)
     return JSONResponse({"traces": _json_safe(traces), "suspects": _json_safe(suspects),
-                         "n_members": len({m["vin"] for m in members}), "n_traced": len(uniq_vins)})
+                         "n_members": len({m["vin"] for m in members}), "n_traced": len(uniq_vins),
+                         "scanned_bytes": rb})
 
 
 @app.get("/api/vehicle")
 def vehicle(vin: str):
     """Bottom plot: ONE vehicle's RAW samples at full resolution. The frontend picks which
     two columns to plot based on the active view (temp vs time / SoC / pack_current)."""
-    rows = _query(f"""
+    rows, rb = _query_m(f"""
         SELECT ts, t_sec,
                soc_pct, pack_current_a, cell_temp_max_c, cell_voltage_min_v, event_type
         FROM {RAW}
         WHERE vin = :vin
         ORDER BY ts
     """, {"vin": vin})
-    return JSONResponse({"vin": vin, "samples": _json_safe(rows), "hot_c": HOT_C})
+    return JSONResponse({"vin": vin, "samples": _json_safe(rows), "scanned_bytes": rb, "hot_c": HOT_C})
 
 
 @app.get("/api/band")

@@ -101,6 +101,20 @@ const DESC = {
     tab:'Each faint loop is one car-day’s current–temperature trajectory. A hot cycle bulges upward. Color = hot-seconds.'}
 };
 
+// Human-readable bytes (KB/MB) from a byte count.
+function fmtBytes(b){
+  if(b==null || isNaN(b)) return null;
+  if(b < 1024) return b+' B';
+  if(b < 1024*1024) return (b/1024).toFixed(1)+' KB';
+  return (b/1024/1024).toFixed(2)+' MB';
+}
+// Build the data-size label: KB of plot data actually shipped to the browser.
+function dataSizeLabel(jsonText, scannedBytes){
+  const moved = fmtBytes(new Blob([jsonText]).size);
+  const scanned = fmtBytes(scannedBytes);   // shown only if the warehouse exposes it (usually not)
+  return `data moved: ${moved}` + (scanned ? ` · scanned: ${scanned}` : '');
+}
+
 async function loadBand(){ const r=await fetch('/api/band'); BAND=(await r.json()).band; }
 
 async function loadStats(){
@@ -118,7 +132,8 @@ function colorbar(title){ return {colorscale:[[0,'#9aa7ad'],[0.15,'#f0c419'],[0.
   colorbar:{title:{text:title,font:{size:10}},thickness:10,len:0.7}}; }
 
 async function drawCurves(){
-  const r=await fetch('/api/curves'); const d=(await r.json()); DATA.curves=d;
+  const r=await fetch('/api/curves'); const txt=await r.text(); const d=JSON.parse(txt); DATA.curves=d;
+  DATA.curves._size=dataSizeLabel(txt, d.scanned_bytes);
   const byKey={}; d.curves.forEach(p=>{const k=p.vin+'|'+p.day;(byKey[k]=byKey[k]||{x:[],y:[],hot:p.hot_seconds}); byKey[k].x.push(p.t_sec); byKey[k].y.push(p.cell_temp_max_c);});
   const keys=Object.keys(byKey);
   const maxHot=Math.max(1,...keys.map(k=>byKey[k].hot));
@@ -132,12 +147,13 @@ async function drawCurves(){
     xaxis:{title:'seconds into trip'},yaxis:{title:'cell_temp_max (°C)'},
     shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:55,y1:55,line:{color:COL.coral,dash:'dot',width:1}}]},
     {displayModeBar:true,displaylogo:false,modeBarButtonsToRemove:['lasso2d','zoom2d','pan2d','autoScale2d']});
-  document.getElementById('left-stat').textContent=`${keys.length} raw car-day curves overlaid (every point rendered — no binning)`;
+  document.getElementById('left-stat').textContent=`${keys.length} raw car-day curves overlaid (every point rendered — no binning) · ${DATA.curves._size}`;
   wireSelect();
 }
 
 async function drawDensity(){
-  const r=await fetch('/api/density'); const d=(await r.json()); DATA.density=d;
+  const r=await fetch('/api/density'); const txt=await r.text(); const d=JSON.parse(txt); DATA.density=d;
+  DATA.density._size=dataSizeLabel(txt, d.scanned_bytes);
   const cells=d.cells;
   const t={x:cells.map(c=>c.soc_bin),y:cells.map(c=>c.temp_bin),z:cells.map(c=>c.log_n),
     mode:'markers',type:'scattergl',
@@ -149,12 +165,13 @@ async function drawDensity(){
     xaxis:{title:'State of Charge (%)'},yaxis:{title:'cell_temp_max (°C)'},
     shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:55,y1:55,line:{color:COL.coral,dash:'dot',width:1}}]},
     {displayModeBar:true,displaylogo:false,modeBarButtonsToRemove:['lasso2d','zoom2d','pan2d','autoScale2d']});
-  document.getElementById('left-stat').textContent=`${cells.length} density cells over all raw samples (full-resolution histogram)`;
+  document.getElementById('left-stat').textContent=`${cells.length} density cells over all raw samples (full-resolution histogram) · ${DATA.density._size}`;
   wireSelect();
 }
 
 async function drawPhase(){
-  const r=await fetch('/api/phase'); const d=(await r.json()); DATA.phase=d;
+  const r=await fetch('/api/phase'); const txt=await r.text(); const d=JSON.parse(txt); DATA.phase=d;
+  DATA.phase._size=dataSizeLabel(txt, d.scanned_bytes);
   const byKey={}; d.points.forEach(p=>{const k=p.vin+'|'+p.day;(byKey[k]=byKey[k]||{x:[],y:[],hot:p.hot_seconds}); byKey[k].x.push(p.pack_current_a); byKey[k].y.push(p.cell_temp_max_c);});
   const keys=Object.keys(byKey); const maxHot=Math.max(1,...keys.map(k=>byKey[k].hot));
   const traces=keys.map(k=>{const c=byKey[k]; const t=c.hot/maxHot;
@@ -164,7 +181,7 @@ async function drawPhase(){
   Plotly.newPlot('left',traces,{margin:{t:6,r:10,b:40,l:48},dragmode:'select',
     xaxis:{title:'pack_current (A)  — negative = discharge'},yaxis:{title:'cell_temp_max (°C)'}},
     {displayModeBar:true,displaylogo:false,modeBarButtonsToRemove:['lasso2d','zoom2d','pan2d','autoScale2d']});
-  document.getElementById('left-stat').textContent=`${keys.length} raw current–temperature loops overlaid`;
+  document.getElementById('left-stat').textContent=`${keys.length} raw current–temperature loops overlaid · ${DATA.phase._size}`;
   wireSelect();
 }
 
@@ -186,7 +203,8 @@ async function doBrush(box){
   rp.scrollIntoView({behavior:'smooth', block:'start'});
   const t0=performance.now();
   const r=await fetch('/api/brush',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(box)});
-  const d=await r.json(); const ms=Math.round(performance.now()-t0);
+  const txt=await r.text(); const d=JSON.parse(txt); const ms=Math.round(performance.now()-t0);
+  const sizeLbl=dataSizeLabel(txt, d.scanned_bytes);
   // right plot: member raw traces (need time-in-trip x) + population band overlay
   const byVin={}; d.traces.forEach(t=>{(byVin[t.vin]=byVin[t.vin]||{x:[],y:[]}); byVin[t.vin].x.push(t.ts); byVin[t.vin].y.push(t.cell_temp_max_c);});
   const series=Object.entries(byVin).map(([vin,s])=>({x:s.x,y:s.y,type:'scattergl',mode:'lines',line:{width:1.3},name:vin.slice(-4)}));
@@ -209,7 +227,7 @@ async function doBrush(box){
     tr.classList.add('sel'); drawVehicle(tr.dataset.vin);
   });
   document.getElementById('rp-badge').textContent=`${s.length} suspects`;
-  document.getElementById('right-stat').textContent=`pushdown fetched ${d.traces.length} raw rows for ${s.length} cars in ${ms} ms — never resident in the browser`;
+  document.getElementById('right-stat').textContent=`pushdown fetched ${d.traces.length} raw rows for ${s.length} cars in ${ms} ms — never resident in the browser · ${sizeLbl}`;
   // NO auto-selection: the single-vehicle panel stays hidden until the user clicks a row.
 }
 
@@ -225,7 +243,8 @@ async function drawVehicle(vin){
   document.getElementById('bp-badge').textContent='loading '+vin.slice(-6)+'…';
   bp.scrollIntoView({behavior:'smooth', block:'start'});
   const r=await fetch('/api/vehicle?vin='+encodeURIComponent(vin));
-  const d=await r.json(); const cfg=BOTTOM_AXES[VIEW]; const S=d.samples;
+  const txt=await r.text(); const d=JSON.parse(txt); const cfg=BOTTOM_AXES[VIEW]; const S=d.samples;
+  const vSize=dataSizeLabel(txt, d.scanned_bytes);
   const trace={ x:S.map(p=>p[cfg.xk]), y:S.map(p=>p.cell_temp_max_c), type:'scattergl',
     mode:cfg.mode, line:{width:1,color:COL.coral},
     marker:{size:3,color:S.map(p=>p.cell_temp_max_c),
@@ -236,7 +255,7 @@ async function drawVehicle(vin){
     xaxis:{title:cfg.xt},yaxis:{title:'cell_temp_max (°C)'},
     shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:55,y1:55,line:{color:COL.coral,dash:'dot',width:1}}]},
     {displayModeBar:false});
-  document.getElementById('bp-badge').textContent=`${vin.slice(-6)} · ${S.length.toLocaleString()} raw samples`;
+  document.getElementById('bp-badge').textContent=`${vin.slice(-6)} · ${S.length.toLocaleString()} raw samples · ${vSize}`;
   document.getElementById('bottom-title').firstChild.textContent=
      `Single-vehicle detail — ${cfg.xt.split(' (')[0]} vs cell temp `;
 }
