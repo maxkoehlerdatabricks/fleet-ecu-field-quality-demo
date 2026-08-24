@@ -33,6 +33,12 @@ tab_css = """
   border:1px solid color-mix(in srgb,var(--ok) 30%,var(--line));border-radius:12px;
   padding:20px 24px;margin:26px 0;font-size:17px}
 .verdict b{color:var(--ok)}
+.reasons{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:24px 0 6px}
+.reasons .rz{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:18px 20px;box-shadow:var(--shadow);border-left:3px solid var(--ok)}
+.reasons .rz h4{font-family:"Inter Tight",sans-serif;font-size:15.5px;margin:0 0 6px}
+.reasons .rz p{font-size:14.5px;color:var(--ink-soft);margin:0}
+@media(max-width:600px){.reasons{grid-template-columns:1fr}}
 .drawfig{margin:22px 0 6px}
 .drawfig svg{width:100%;height:auto;display:block;border-radius:12px;
   background:color-mix(in srgb,var(--ground) 55%,var(--panel));border:1px solid var(--line);padding:8px}
@@ -60,77 +66,36 @@ tab_why = '''<div class="panel-doc active" id="tab-why">
   <div class="hero">
     <div class="eyebrow">Databricks demo · visualizing massive data</div>
     <h1>Why Databricks Apps</h1>
-    <p class="lede">This demo makes one argument: for interactive visualization of <strong>massive
-      data</strong> — hundreds of millions of raw rows you need to see, not just summarize — a
-      <strong>Databricks App</strong> does what classic BI tools like Power BI, Tableau and Qlik
-      structurally cannot. The rest of this document proves it on a concrete example. The example is a
-      fleet of EV batteries; the point is general.</p>
+    <p class="lede">For interactive visualization of <strong>massive data</strong>, a Databricks App
+      does what classic BI tools like Power BI, Tableau and Qlik cannot. The example here is a fleet
+      of EV batteries — the point is general.</p>
   </div>
 </header>
 
 <div class="wrap">
 
 <section>
-  <div class="eyebrow">The problem, in general</div>
-  <h2>Massive data is hard to <em>visualize</em>, not just to store</h2>
-  <p class="sub">Storing billions of rows is a solved problem. Letting a human <em>see</em> them —
-    interactively, at full detail, to find the rare thing that matters — is where the classic BI tools
-    hit a wall. Two limits do it.</p>
-  <div class="proof">
-    <div class="stat"><div class="k">Rendering ceiling</div><div class="v" style="font-size:26px">~10³–10⁴</div>
-      <div class="u">marks a BI chart will draw — then it samples or aggregates the rest</div></div>
-    <div class="stat"><div class="k">Data residency</div><div class="v" style="font-size:26px">1 : 1</div>
-      <div class="u">a copy of the data (extract / imported model) must be loaded, and it grows with the data</div></div>
-    <div class="stat hot"><div class="k">The casualty</div><div class="v" style="font-size:26px">outliers</div>
-      <div class="u">the rare rows are exactly what sampling and aggregation erase</div></div>
+  <div class="eyebrow">The reasons</div>
+  <h2>Five reasons it’s a Databricks App</h2>
+  <div class="reasons">
+    <div class="rz"><h4>Full fidelity</h4>
+      <p>BI charts cap at a few thousand marks and sample the rest, so rare outliers vanish. The App
+        renders every raw sample as a full-resolution picture.</p></div>
+    <div class="rz"><h4>Scales with the fleet</h4>
+      <p>Add more vehicles and a BI extract keeps growing until loads and refreshes stall. The App
+        queries bounded slices in the lakehouse, so response time stays flat as the fleet grows.</p></div>
+    <div class="rz"><h4>One platform to maintain</h4>
+      <p>A separate BI tool is another system to license, secure, refresh and govern beside the
+        lakehouse. The App runs on the data platform you already have — one place, one copy, one story.</p></div>
+    <div class="rz"><h4>Licensing you can save</h4>
+      <p>Per-seat BI licenses recur for every viewer. A Databricks App serves users on compute you
+        already run, avoiding a separate dashboarding subscription.</p></div>
+    <div class="rz"><h4>Interaction BI can’t do</h4>
+      <p>It’s a real app: a lasso that triggers a server-side raw fetch, a sample-size control, a drill
+        to one vehicle’s complete raw signal — none of it resident in the browser.</p></div>
   </div>
-  <p class="callout">A classic BI tool stays fast by keeping a resident copy of the data and drawing
-    only a few thousand marks. As the data grows it must summarize harder — and for finding the rare,
-    important row, the summary is where the answer disappears.</p>
-</section>
-
-<section>
-  <div class="eyebrow">The Databricks App answer</div>
-  <h2>Keep the data in the lakehouse; move only what the eye needs</h2>
-  <p class="sub">A Databricks App is a lightweight web app served next to the lakehouse. It never loads
-    a resident copy and never tries to draw everything. Instead it does two things classic BI cannot
-    combine at scale:</p>
-  <div class="mean">
-    <div class="cell"><h4><span class="dot" style="background:var(--ok)"></span>Full-resolution overview</h4>
-      <p>The whole dataset is aggregated <em>in the warehouse</em> into a picture that keeps the rare
-        cell visible — no client-side point cap, no sampling of the tail.</p></div>
-    <div class="cell"><h4><span class="dot" style="background:var(--ok)"></span>Raw detail on demand</h4>
-      <p>Any selection becomes a bounded query that fetches just those raw rows from the lakehouse —
-        data that was never loaded into the browser.</p></div>
-    <div class="cell"><h4><span class="dot" style="background:var(--cool)"></span>Flat with scale</h4>
-      <p>Every interaction is a bounded query, so ten times the data barely changes the response time.
-        No growing extract, no refresh cliff.</p></div>
-    <div class="cell"><h4><span class="dot" style="background:var(--cool)"></span>Custom interaction</h4>
-      <p>It is a real app, so it can do things a BI canvas can’t — a lasso that triggers a server-side
-        fetch, a sample-size control, a drill that pulls one entity’s full raw signal.</p></div>
-  </div>
-</section>
-
-<section>
-  <div class="eyebrow">This demo, in one line each</div>
-  <h2>How the rest of the document proves it</h2>
-  <p class="sub">The argument is carried by a concrete example so it stays honest and testable.</p>
-  <ul class="products">
-    <li><div><div class="pname">2 · Example: Outlier Detection for EV Batteries</div><div class="psig mono">the example</div></div>
-      <p>A fleet of EV batteries. The thing worth finding — a pack running too hot — is a rare, raw,
-        seconds-long signal that any average hides. This is the <em>massive-data-visualization</em>
-        problem in concrete form.</p></li>
-    <li><div><div class="pname">3 · App Workflow</div><div class="psig mono">the solution, working</div></div>
-      <p>The live Databricks App, top to bottom: a full-resolution fleet picture, a lasso with a
-        sample-size control, and a drill to one vehicle’s complete raw trace.</p></li>
-    <li><div><div class="pname">4 · Tool Comparison</div><div class="psig mono">the head-to-head</div></div>
-      <p>The same three steps attempted in Tableau, Power BI and Qlik — where each falls back to a
-        summary, and why. Plus reaction time as the fleet grows.</p></li>
-  </ul>
-  <p class="verdict">The takeaway you should leave with: <b>when the job is to see and interrogate
-    massive data at full fidelity — not just chart a summary of it — a Databricks App is the right
-    tool, and a resident-extract BI tool like Power BI is the wrong shape for it.</b> The battery is
-    just where you can watch that play out.</p>
+  <p class="verdict">To <b>see and interrogate massive data at full fidelity</b> — not just chart a
+    summary — a Databricks App is the right tool; a resident-extract BI tool is the wrong shape.</p>
 </section>
 </div>
 </div>
@@ -141,11 +106,9 @@ tab1 = '''<div class="panel-doc" id="tab-story">
   <div class="hero">
     <div class="eyebrow">Example case · fleet EV battery</div>
     <h1>The outlier in the pack</h1>
-    <p class="lede">The example that carries this demo: a monitor for the <strong>traction batteries
-      of a fleet of electric vehicles</strong>. Every pack streams the temperature of its hottest cell,
-      ten times a second. The job is to find the one battery, among hundreds, that runs too hot — before
-      it becomes a failure. It is a textbook case of needing to <em>see</em> a rare signal inside massive
-      raw data.</p>
+    <p class="lede">The example that carries this demo: a fleet of EV batteries. Each pack reports its
+      hottest cell’s temperature ten times a second. The job — find the one pack, among hundreds, that
+      runs too hot.</p>
     <div class="ramp"></div>
     <div class="ramp-labels mono">
       <span>28&nbsp;°C&nbsp;nominal</span><span>45&nbsp;°C&nbsp;elevated</span>
@@ -157,51 +120,25 @@ tab1 = '''<div class="panel-doc" id="tab-story">
 <div class="wrap">
 
 <section>
-  <div class="eyebrow">The product</div>
-  <h2>An EV battery, watched one cell at a time</h2>
-  <p class="sub">Each vehicle carries a traction battery — a <em>pack</em> of many <em>modules</em>,
-    each a stack of <em>cells</em>. A Battery Management System reports the temperature of the hottest
-    cell in the pack, about ten times a second, for every car in the fleet.</p>
-  <p>A cell that climbs to 70&nbsp;°C for a few seconds during a fast charge is a thermal event — a
-    precursor to accelerated aging, capacity loss, and, at the extreme, thermal runaway. One bad cell,
-    buried among thousands, is enough to move the number. Finding that pack while it is still just an
-    outlier is the whole point of the monitor.</p>
-</section>
-
-<section>
-  <div class="eyebrow">Why an average hides the fault</div>
-  <h2>The dangerous signal is never the average</h2>
-  <p class="sub">The fault is a rare, seconds-long deviation. Averaging — over time, over the cells in
-    a pack, over the fleet — is exactly what erases it.</p>
-  <p>These are the numbers from the demo fleet — 200 cars, three days, 21.6&nbsp;million raw samples:</p>
+  <div class="eyebrow">Why an average hides it</div>
+  <h2>The fault is never the average</h2>
+  <p class="sub">A hot pack is a rare, seconds-long spike. Any average — over time, cells, or the fleet
+    — erases it. The demo fleet: 200 cars, 21.6&nbsp;million raw samples.</p>
   <div class="proof">
     <div class="stat cool"><div class="k">Fleet median</div><div class="v">39.1</div>
-      <div class="u">°C — what an average dashboard shows</div></div>
-    <div class="stat"><div class="k">Top 0.1% of samples</div><div class="v">62.8</div>
-      <div class="u">°C — already past the risk line</div></div>
-    <div class="stat hot"><div class="k">Hottest sample</div><div class="v">72.5</div>
+      <div class="u">°C — what an average shows</div></div>
+    <div class="stat"><div class="k">Top 0.1%</div><div class="v">62.8</div>
+      <div class="u">°C — past the risk line</div></div>
+    <div class="stat hot"><div class="k">Hottest</div><div class="v">72.5</div>
       <div class="u">°C — from 30 of 200 cars</div></div>
   </div>
-  <p class="callout">The whole fleet looks fine at 39&nbsp;°C. The truth — a 72&nbsp;°C excursion on a
-    handful of cars — lives in a fraction of a percent of the data. You cannot aggregate your way to
-    it. You have to keep every raw sample and go hunting.</p>
 </section>
 
 <section>
   <div class="eyebrow">What happened to the battery</div>
-  <h2>Reading the outlier is reading a physical failure</h2>
-  <p class="sub">The signal is cell temperature, so a hot outlier is a defect you can name. Here is the
-    pack, where the number comes from, and what has gone wrong in the cell that runs hot.</p>
+  <h2>A hot outlier is a defect you can name</h2>
+  <p class="sub">The signal is cell temperature — so reading the outlier is reading a physical failure.</p>
 DRAWINGS
-</section>
-
-<section>
-  <div class="eyebrow">What comes next</div>
-  <h2>From the fault to finding it</h2>
-  <p class="sub">The outlier is real, physical, and rare — a fraction of a percent of the data, alive
-    only at the raw sample grain. The next tab, <strong>App Workflow</strong>, shows how the dashboard
-    lets you find it: from the whole fleet, down to the one vehicle, without ever averaging the signal
-    away.</p>
 </section>
 </div>
 </div>
@@ -277,10 +214,9 @@ tab2 = '''<div class="panel-doc" id="tab-tools">
   <div class="hero">
     <div class="eyebrow">Tool comparison · Databricks Apps vs classic BI</div>
     <h1>Why this only works on Databricks&nbsp;Apps</h1>
-    <p class="lede">The workflow depends on two things at once: showing a full-resolution picture of
-      hundreds of millions of raw samples, and fetching the raw rows behind any selection on demand.
-      That combination is outside the model of the classic BI tools. Here is the comparison, step by
-      step, then the reason it holds.</p>
+    <p class="lede">The workflow needs two things at once: a full-resolution picture of hundreds of
+      millions of raw samples, and the raw rows behind any selection on demand. Classic BI can’t do
+      both at scale.</p>
   </div>
 </header>
 
@@ -289,10 +225,9 @@ tab2 = '''<div class="panel-doc" id="tab-tools">
 <section>
   <div class="eyebrow">The root difference</div>
   <h2>Where the data lives decides what the tool can do</h2>
-  <p class="sub">Tableau, Power BI and Qlik are all excellent BI tools. But each keeps granular data
-    <em>resident</em> — a Hyper extract, an imported model, an in-memory table — and each can only
-    render a few thousand marks on a chart. The Databricks App keeps the data in the lakehouse and
-    fetches only what each step needs.</p>
+  <p class="sub">Tableau, Power BI and Qlik keep data <em>resident</em> (an extract / imported model)
+    and render only a few thousand marks. The Databricks App keeps data in the lakehouse and fetches
+    only what each step needs.</p>
   <figure class="drawfig">
     <svg viewBox="0 0 720 210" role="img" aria-label="Classic BI tools load a resident copy of the data and render a capped number of marks; the Databricks App queries the lakehouse and fetches only what each step needs">
       <!-- BI side -->
@@ -391,24 +326,17 @@ tab2 = '''<div class="panel-doc" id="tab-tools">
     <div class="row"><span class="tool-name">Power BI</span><div class="bar mid"><span style="width:70%"></span></div><span class="t">~10 s</span></div>
     <div class="row"><span class="tool-name">Qlik</span><div class="bar mid"><span style="width:65%"></span></div><span class="t">~9 s</span></div>
   </div>
-  <div class="rtnote">Illustrative, for a fleet in the hundreds of vehicles / billions of raw samples.
-    BI figures reflect building and loading a resident extract / in-memory model (or a slow DirectQuery
-    round-trip) plus the first render; the App figure is a pre-materialized aggregate served from the warehouse.</div>
-  <p style="margin-top:22px"><strong>Why the App stays flat as the fleet grows.</strong> Its overview
-    reads a small pre-computed aggregate, and each lasso is a <em>bounded</em> pushdown query — it
-    touches only the sampled vehicles’ rows (helped by clustering the raw table on vehicle id), never
-    the whole dataset. Ten times the vehicles barely moves the interaction cost. <strong>Why the BI
-    tools degrade:</strong> their speed depends on holding granular data resident, so as the fleet
-    grows the extract / model grows, the load and every refresh slow down, and to stay responsive the
-    tool summarizes harder — the one thing outlier work cannot afford.</p>
+  <div class="rtnote">Illustrative, for hundreds of vehicles / billions of raw samples. BI figures =
+    load a resident extract/model (or a slow DirectQuery round-trip) + first render; the App = a
+    pre-materialized aggregate from the warehouse. <b>The App stays flat as the fleet grows</b> (each
+    lasso is a bounded query); <b>BI degrades</b> (the resident copy grows with the data).</div>
 </section>
 
 <section>
   <div class="eyebrow">The picture in one chart</div>
   <h2>Why massive data breaks classic BI visuals</h2>
-  <p class="sub">It is a general problem, not specific to batteries. A chart can only render so many
-    marks, and a classic BI tool must first load the data it draws from. So as the dataset grows, the
-    fraction it can actually show you shrinks — and it fills the gap by summarizing.</p>
+  <p class="sub">A chart renders only so many marks, and a BI tool must load the data first — so as the
+    dataset grows, the fraction it can show shrinks, and it fills the gap by summarizing.</p>
 
   <figure class="drawfig">
     <svg viewBox="0 0 720 340" role="img" aria-label="As data volume grows on a log scale, a classic BI tool's rendered detail stays flat at a few thousand marks while the data it must represent climbs, opening a widening blind spot; the Databricks App tracks the data because it queries bounded slices instead of rendering everything">
@@ -448,32 +376,26 @@ tab2 = '''<div class="panel-doc" id="tab-tools">
       renders everything: it shows a full-resolution aggregate and fetches raw detail in bounded slices.</figcaption>
   </figure>
 
-  <p><strong>The two things that break, in general.</strong> First, <em>rendering</em>: no browser chart
-    draws a billion marks, so every tool has a ceiling — the honest question is what it does when the data
-    exceeds it. Second, <em>residency</em>: a classic BI tool must load a copy of the data it visualizes
-    (an extract, an imported model), and that copy grows with the data until load times and memory make it
-    impractical. The App avoids both by keeping the data in the lakehouse and only ever moving a bounded,
-    already-shaped result to the screen.</p>
+  <p><strong>Two things break:</strong> <em>rendering</em> (no chart draws a billion marks) and
+    <em>residency</em> (the loaded copy grows with the data). The App avoids both — it keeps data in
+    the lakehouse and moves only a bounded, already-shaped result to the screen.</p>
 </section>
 
 <section>
   <div class="eyebrow">The conclusion</div>
   <h2>Why it can only be the Databricks App</h2>
-  <p class="sub">Line the two requirements up against the one architectural fact and the answer falls out.</p>
-  <p>The workflow needs, at the same time: <strong>(1)</strong> a full-resolution view of hundreds of
-    millions of raw samples — no sampling, no coarse bins, or the outlier disappears; and
-    <strong>(2)</strong> the raw rows behind any brushed region, fetched on demand — because the
-    diagnosis lives in the raw shape, not a summary.</p>
-  <p>Tableau, Power BI and Qlik can each do neither at fleet scale, for the same root reason: they
-    render from a <em>resident copy</em> and cap the marks they draw, so they must summarize to stay
-    responsive, and their selection works only over what is already loaded. Turning up the data makes
-    both problems worse.</p>
-  <p class="verdict">The Databricks App inverts that. The raw data <b>never leaves the lakehouse</b>:
-    the overview is a full-resolution aggregate computed there, and every lasso is a fresh
-    <b>bounded query</b> that fetches only the rows that step needs — the density grid, then the
-    sampled vehicles’ raw traces, then one vehicle’s full signal. Nothing large is ever resident, so
-    it renders the outlier <b>and</b> reaches the raw detail, and it stays fast as the fleet grows.
-    That is why the workflow is native to a Databricks App and not to a resident-extract BI tool.</p>
+  <p class="sub">The fidelity argument is decisive on its own — and the same architecture wins on the
+    operational points from tab 1 too.</p>
+  <div class="reasons">
+    <div class="rz"><h4>Fidelity</h4><p>Renders every raw sample and fetches raw detail on demand; BI must summarize.</p></div>
+    <div class="rz"><h4>Scalability</h4><p>More vehicles = bigger BI extract and slower refresh; the App’s bounded queries stay flat.</p></div>
+    <div class="rz"><h4>Maintenance</h4><p>No separate BI system to license, refresh and govern — it runs on the lakehouse you already have.</p></div>
+    <div class="rz"><h4>Licensing</h4><p>No per-seat dashboard subscription; users are served on existing compute.</p></div>
+  </div>
+  <p class="verdict">The raw data <b>never leaves the lakehouse</b>: a full-resolution aggregate for the
+    overview, and a fresh <b>bounded query</b> for every drill. So a Databricks App sees the outlier
+    <b>and</b> reaches the raw detail, stays fast as the fleet grows, and needs no separate BI tool to
+    license and maintain.</p>
 </section>
 </div>
 </div>
