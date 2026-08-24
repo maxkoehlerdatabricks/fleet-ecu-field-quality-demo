@@ -562,9 +562,13 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
 <section>
   <div class="eyebrow">The root difference</div>
   <h2>Where the data lives decides what the tool can do</h2>
-  <p class="sub">Tableau, Power BI and Qlik keep data <em>resident</em> (an extract / imported model)
-    and render only a few thousand marks. The Databricks App keeps data in the lakehouse and fetches
-    only what each step needs.</p>
+  <p class="sub">By default Tableau, Power BI and Qlik keep data <em>resident</em> — loaded into memory
+    upfront (a Tableau <em>extract</em>, a Power BI <em>import</em> model, Qlik's <em>in-memory</em>
+    load) — and render only a few thousand marks. Each also has a query-live mode (Tableau
+    <em>live connection</em>, Power BI <em>DirectQuery</em>, Qlik <em>Direct Query / ODAG</em>) that
+    avoids the resident copy — but the chart still caps the marks it draws, and every interaction now
+    pays a round-trip to the source. The Databricks App keeps data in the lakehouse and fetches only
+    what each step needs.</p>
   <figure class="drawfig">
     <svg viewBox="0 0 720 210" role="img" aria-label="Classic BI tools load a resident copy of the data and render a capped number of marks; the Databricks App queries the lakehouse and fetches only what each step needs">
       <!-- BI side -->
@@ -599,8 +603,10 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
         <marker id="a2b" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0,0 9,4.5 0,9" fill="var(--ok)"/></marker>
       </defs>
     </svg>
-    <figcaption>A BI tool front-loads a resident copy and renders a capped number of marks, so it must
-      summarize. The App leaves the raw data in the lakehouse and each interaction is a bounded query.</figcaption>
+    <figcaption>In its default mode a BI tool front-loads a resident copy and renders a capped number
+      of marks, so it must summarize. (A query-live mode — Tableau live, Power BI DirectQuery, Qlik
+      Direct Query — skips the copy but keeps the mark cap and adds a per-click round-trip.) The App
+      leaves the raw data in the lakehouse and each interaction is a bounded query.</figcaption>
   </figure>
 </section>
 
@@ -672,8 +678,9 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
 <section>
   <div class="eyebrow">The picture in one chart</div>
   <h2>Why massive data breaks classic BI visuals</h2>
-  <p class="sub">A chart renders only so many marks, and a BI tool must load the data first — so as the
-    dataset grows, the fraction it can show shrinks, and it fills the gap by summarizing.</p>
+  <p class="sub">A chart renders only so many marks — whether the data is loaded resident or queried
+    live — so as the dataset grows, the fraction it can show shrinks, and it fills the gap by
+    summarizing.</p>
 
   <figure class="drawfig">
     <svg viewBox="0 0 720 340" role="img" aria-label="As data volume grows on a log scale, a classic BI tool's rendered detail stays flat at a few thousand marks while the data it must represent climbs, opening a widening blind spot; the Databricks App tracks the data because it queries bounded slices instead of rendering everything">
