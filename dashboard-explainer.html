@@ -261,6 +261,14 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
 .reasons .rz h4{font-family:"Inter Tight",sans-serif;font-size:15.5px;margin:0 0 6px}
 .reasons .rz p{font-size:14.5px;color:var(--ink-soft);margin:0}
 @media(max-width:600px){.reasons{grid-template-columns:1fr}}
+.define{background:color-mix(in srgb,var(--cool) 7%,var(--panel));
+  border:1px solid color-mix(in srgb,var(--cool) 26%,var(--line));border-radius:12px;
+  padding:16px 20px;margin:20px 0}
+.define p{font-size:14.5px;color:var(--ink);margin:0 0 8px;max-width:none}
+.define p:last-child{margin-bottom:0}
+.define ul{margin:6px 0 10px;padding-left:20px}
+.define li{font-size:14px;color:var(--ink-soft);margin:3px 0}
+.define b{color:var(--ink)}
 .drawfig{margin:22px 0 6px}
 .drawfig svg{width:100%;height:auto;display:block;border-radius:12px;
   background:color-mix(in srgb,var(--ground) 55%,var(--panel));border:1px solid var(--line);padding:8px}
@@ -562,13 +570,28 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
 <section>
   <div class="eyebrow">The root difference</div>
   <h2>Where the data lives decides what the tool can do</h2>
-  <p class="sub">By default Tableau, Power BI and Qlik keep data <em>resident</em> — loaded into memory
-    upfront (a Tableau <em>extract</em>, a Power BI <em>import</em> model, Qlik's <em>in-memory</em>
-    load) — and render only a few thousand marks. Each also has a query-live mode (Tableau
-    <em>live connection</em>, Power BI <em>DirectQuery</em>, Qlik <em>Direct Query / ODAG</em>) that
-    avoids the resident copy — but the chart still caps the marks it draws, and every interaction now
-    pays a round-trip to the source. The Databricks App keeps data in the lakehouse and fetches only
-    what each step needs.</p>
+  <p class="sub">Assume the deployed server products — Tableau Server, the Power BI Service, Qlik Sense
+    Enterprise. By default each serves interactive charts from a <em>resident copy</em>, and each
+    renders only a few thousand marks per chart.</p>
+
+  <div class="define">
+    <p><b>What the “resident copy” is, precisely:</b> a second, materialized copy of the data held
+      <em>on the BI server</em> and kept in sync with the source by scheduled refresh jobs.</p>
+    <ul>
+      <li><b>Tableau Server</b> — a published <b>Hyper extract</b> on the server, rebuilt by scheduled extract refreshes.</li>
+      <li><b>Power BI Service</b> — an <b>Import semantic model</b> loaded into the capacity’s in-memory (VertiPaq) engine, rebuilt by scheduled dataset refreshes.</li>
+      <li><b>Qlik Sense Enterprise</b> — a QVF <b>app loaded into the engine’s RAM</b>, rebuilt by scheduled reload tasks.</li>
+    </ul>
+    <p>So it is a governed <em>duplicate</em> of the data that must be capacity-sized, is only current
+      as of the last refresh, and grows — and slows — as the fleet grows.</p>
+  </div>
+
+  <p>Each product also has a query-live mode (Tableau <em>live connection</em>, Power BI
+    <em>DirectQuery</em>, Qlik <em>Direct Query / ODAG</em>) that avoids the resident copy — but the
+    chart still caps the marks it draws, and every user’s every interaction now round-trips to the
+    source. The Databricks App holds <em>no</em> materialized copy on any server: it reads the
+    lakehouse directly and fetches only what each step needs (its one small overview aggregate is a
+    governed table in the lakehouse, not a separate resident engine to size and refresh).</p>
   <figure class="drawfig">
     <svg viewBox="0 0 720 210" role="img" aria-label="Classic BI tools load a resident copy of the data and render a capped number of marks; the Databricks App queries the lakehouse and fetches only what each step needs">
       <!-- BI side -->
