@@ -1,21 +1,16 @@
 """Fleet ECU dashboard — Databricks App backend.
 
-Serves THREE candidate left-plot visualizations (switchable in the UI), each of which is
-"full-resolution in Apps, only-aggregated in Tableau", plus a shared right-hand detail panel.
+The single left-plot visualization is the raw-sample density plot; brushing it drives a shared
+right-hand detail panel and a single-vehicle drill.
 
-Left-plot data endpoints (all read from the small aggregate or a downsampled raw slice; the
-huge raw table is only fully touched on brush, bounded to the VINs inside the box):
-
-  GET  /api/curves      -> View A: overlaid raw cell-temp curves (one per vin/day), x = sec into trip.
-                           Tableau can only draw an aggregated percentile band, never the raw curves.
-  GET  /api/density     -> View B: server-binned 2D density of RAW samples (SoC x cell-temp), log counts.
-                           Tableau's hexbin is coarse/pre-aggregated and smears lone outliers away.
-  GET  /api/phase       -> View C: per-cycle phase-portrait trajectories (pack_current x cell-temp).
-                           Thousands of raw loops -- impossible in Tableau's mark model.
-
-  POST /api/brush       -> shared right panel: given the active view + a rectangle, resolve the member
-                           VINs and LAZILY FETCH their raw traces + a suspects table. The pushdown an
+  GET  /api/density     -> server-binned 2D density of RAW samples (SoC x cell-temp), log counts.
+                           Tableau's hexbin is coarse/pre-aggregated and smears lone outliers away;
+                           this is the full-resolution histogram.
+  POST /api/brush       -> right panel: given a rectangle in (SoC, temp), resolve the member VINs
+                           and LAZILY FETCH their raw traces + a suspects table. The pushdown an
                            extract-based tool cannot do on demand.
+  GET  /api/vehicle     -> bottom panel: one vehicle's raw samples at full resolution.
+  GET  /api/stats       -> live fleet size for the header.
 """
 import os
 from pathlib import Path
@@ -35,13 +30,6 @@ BAND    = f"{CATALOG}.{SCHEMA}.bms_band"
 VEH     = f"{CATALOG}.{SCHEMA}.vehicle"
 HOT_C   = 55.0   # hot threshold (deg C). MUST match HOT_THRESHOLD_C in 00_config.py
                  # (the App is a separate deployed service and can't import the notebook config).
-
-# Overview curve/phase plots overlay one line per car-day. Past a few dozen cars that is both
-# unreadable and too many points for the browser, so we cap how many cars the OVERVIEW samples.
-# We ALWAYS keep the hot cars (the story) and fill the rest with a deterministic hash sample of
-# healthy cars so the ribbon still looks dense. The brush + single-vehicle drill always hit the
-# full raw table, so nothing is hidden -- only the overview backbone is subsampled.
-OVERVIEW_MAX_CARS = int(os.getenv("OVERVIEW_MAX_CARS", "40"))
 
 _wh = (os.getenv("DATABRICKS_WAREHOUSE_HTTP_PATH") or os.getenv("SQL_HTTP_PATH")
        or os.getenv("WAREHOUSE_ID", ""))
@@ -112,29 +100,6 @@ def _json_safe(rows):
 # ---------------------------------------------------------------------------
 
 @lru_cache(maxsize=1)
-def _curves_cached():
-    """View A: overlaid raw cell-temp curves, downsampled to ~1 pt/sec for the fleet overview."""
-    # Per-vin hot summary comes from the small bms_daily_vin aggregate (200 rows), NOT a raw scan.
-    # We only touch the raw table for the actual backbone points of the selected cars.
-    rows = _query(f"""
-        WITH vhot AS (   -- per-vin hot summary from the pre-built aggregate
-            SELECT vin, round(sum(hot_seconds),1) AS hot_seconds, round(max(cell_temp_max),1) AS peak_c
-            FROM {DAILY} GROUP BY vin
-        ),
-        shown AS (       -- always keep hot cars; fill up to OVERVIEW_MAX_CARS with a hash sample
-            SELECT vin, hot_seconds, peak_c FROM vhot
-            WHERE hot_seconds > 0
-               OR pmod(abs(hash(vin)), (SELECT count(*) FROM vhot)) < {OVERVIEW_MAX_CARS}
-        )
-        SELECT r.vin, r.day, r.t_sec, r.cell_temp_max_c, s.hot_seconds, s.peak_c
-        FROM {RAW} r JOIN shown s ON r.vin = s.vin
-        WHERE r.t_sec % 30 = 0
-        ORDER BY r.vin, r.day, r.t_sec
-    """)
-    return {"rows": _json_safe(rows), "scanned_bytes": rb}
-
-
-@lru_cache(maxsize=1)
 def _stats_cached():
     """Fleet size shown in the header. Reads live from the tables so it is always correct
     for whatever N_CARS the data was built with."""
@@ -151,12 +116,6 @@ def _stats_cached():
 @app.get("/api/stats")
 def stats():
     return JSONResponse(_json_safe([_stats_cached()])[0])
-
-
-@app.get("/api/curves")
-def curves():
-    c = _curves_cached()
-    return JSONResponse({"curves": c["rows"], "scanned_bytes": c["scanned_bytes"], "hot_c": HOT_C})
 
 
 @lru_cache(maxsize=1)
@@ -181,40 +140,13 @@ def density():
     return JSONResponse({"cells": c["rows"], "scanned_bytes": c["scanned_bytes"], "hot_c": HOT_C})
 
 
-@lru_cache(maxsize=1)
-def _phase_cached():
-    """View C: phase-portrait trajectories, pack_current vs cell_temp, per (vin, day), downsampled."""
-    rows, rb = _query_m(f"""
-        WITH vhot AS (
-            SELECT vin, round(sum(hot_seconds),1) AS hot_seconds FROM {DAILY} GROUP BY vin
-        ),
-        shown AS (       -- same fleet subsample as the curves overview
-            SELECT vin, hot_seconds FROM vhot
-            WHERE hot_seconds > 0
-               OR pmod(abs(hash(vin)), (SELECT count(*) FROM vhot)) < {OVERVIEW_MAX_CARS}
-        )
-        SELECT r.vin, r.day, r.pack_current_a, r.cell_temp_max_c, s.hot_seconds
-        FROM {RAW} r JOIN shown s ON r.vin = s.vin
-        WHERE r.t_sec % 30 = 0
-        ORDER BY r.vin, r.day, r.t_sec
-    """)
-    return {"rows": _json_safe(rows), "scanned_bytes": rb}
-
-
-@app.get("/api/phase")
-def phase():
-    c = _phase_cached()
-    return JSONResponse({"points": c["rows"], "scanned_bytes": c["scanned_bytes"], "hot_c": HOT_C})
-
-
 # ---------------------------------------------------------------------------
 # Brush: the rectangle is in the active view's coordinate space. We resolve which
 # (vin, day) member traces pass through the box, then fetch their RAW detail.
 # ---------------------------------------------------------------------------
 
 class Box(BaseModel):
-    view: str            # 'curves' | 'density' | 'phase'
-    x0: float; x1: float; y0: float; y1: float
+    x0: float; x1: float; y0: float; y1: float   # rectangle in (State of Charge, cell temp)
 
 
 @app.post("/api/brush")
@@ -222,22 +154,11 @@ def brush(box: Box):
     lo_x, hi_x = min(box.x0, box.x1), max(box.x0, box.x1)
     lo_y, hi_y = min(box.y0, box.y1), max(box.y0, box.y1)
 
-    if box.view == "curves":
-        # member = any (vin,day) with a raw sample inside (t_sec in [x], temp in [y])
-        members = _query(f"""
-            SELECT DISTINCT vin, day FROM {RAW}
-            WHERE t_sec BETWEEN :lx AND :hx AND cell_temp_max_c BETWEEN :ly AND :hy
-        """, {"lx": lo_x, "hx": hi_x, "ly": lo_y, "hy": hi_y})
-    elif box.view == "phase":
-        members = _query(f"""
-            SELECT DISTINCT vin, day FROM {RAW}
-            WHERE pack_current_a BETWEEN :lx AND :hx AND cell_temp_max_c BETWEEN :ly AND :hy
-        """, {"lx": lo_x, "hx": hi_x, "ly": lo_y, "hy": hi_y})
-    else:  # density: box in (SoC, temp)
-        members = _query(f"""
-            SELECT DISTINCT vin, day FROM {RAW}
-            WHERE soc_pct BETWEEN :lx AND :hx AND cell_temp_max_c BETWEEN :ly AND :hy
-        """, {"lx": lo_x, "hx": hi_x, "ly": lo_y, "hy": hi_y})
+    # Density brush: the box is in (SoC, temp). Find the (vin) with any raw sample inside it.
+    members = _query(f"""
+        SELECT DISTINCT vin, day FROM {RAW}
+        WHERE soc_pct BETWEEN :lx AND :hx AND cell_temp_max_c BETWEEN :ly AND :hy
+    """, {"lx": lo_x, "hx": hi_x, "ly": lo_y, "hy": hi_y})
 
     # Cap the number of member vins whose RAW traces we ship (keeps the browser + payload sane
     # no matter how wide the brush is). The suspects table below still summarizes ALL members.

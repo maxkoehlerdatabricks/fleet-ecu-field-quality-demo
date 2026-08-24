@@ -45,8 +45,8 @@
 <body>
 <header>
   <h1>Fleet EV Battery — Field-Quality Monitor <span class="tag">Databricks App</span></h1>
-  <p>Pick a left-plot visualization, then <b>box-select</b> (drag a rectangle) over the suspects.
-     The right panel fetches their raw traces + forensic detail live from the lakehouse.</p>
+  <p><b>Box-select</b> (drag a rectangle) over the hot samples in the density plot below.
+     The right panel fetches those cars' raw traces + forensic detail live from the lakehouse.</p>
   <div class="statbar" id="statbar">
     <span class="pill" id="pill-cars">… vehicles</span>
     <span class="pill" id="pill-rows">… raw samples</span>
@@ -55,11 +55,6 @@
   </div>
 </header>
 
-<div class="tabs">
-  <div class="tab active" data-v="curves">A · Overlaid raw curves</div>
-  <div class="tab" data-v="density">B · Raw-sample density</div>
-  <div class="tab" data-v="phase">C · Phase portrait</div>
-</div>
 <div class="tabdesc" id="tabdesc"></div>
 
 <div class="wrap">
@@ -87,18 +82,12 @@
 
 <script>
 const COL = {ink:'#1B3139', coral:'#FF3621', slate:'#618794'};
-let VIEW='curves', BAND=null, DATA={};
+let BAND=null, DATA={};
 
-const DESC = {
-  curves: {title:'Cell temperature vs time-in-trip — every car’s raw curve overlaid',
-    note:'Tableau can only draw an aggregated percentile band here — the individual outlier curve’s shape is impossible to render.',
-    tab:'Thousands of raw 10 Hz curves form a dense ribbon; an outlier curve peels upward out of it. Color = seconds spent above 55°C.'},
-  density: {title:'Raw-sample density — State of Charge vs cell temperature',
-    note:'Tableau’s hexbin is coarse and pre-aggregated; a lone hot outlier is smeared into a bin and disappears.',
-    tab:'Full-resolution 2D histogram of every raw sample (log color). Outliers are faint hot cells floating above the main cloud.'},
-  phase: {title:'Phase portrait — pack current vs cell temperature (per drive/charge cycle)',
-    note:'Thousands of raw per-cycle trajectories — beyond Tableau’s one-mark-per-row model.',
-    tab:'Each faint loop is one car-day’s current–temperature trajectory. A hot cycle bulges upward. Color = hot-seconds.'}
+const DENSITY_DESC = {
+  title:'Raw-sample density — State of Charge vs cell temperature',
+  note:'Tableau’s hexbin is coarse and pre-aggregated; a lone hot outlier is smeared into a bin and disappears.',
+  tab:'Full-resolution 2D histogram of every raw sample (log color). Outliers are faint hot cells floating above the main cloud.'
 };
 
 // Human-readable bytes (KB/MB) from a byte count.
@@ -128,29 +117,6 @@ async function loadStats(){
   }catch(e){ document.getElementById('statbar').style.display='none'; }
 }
 
-function colorbar(title){ return {colorscale:[[0,'#9aa7ad'],[0.15,'#f0c419'],[0.5,'#FF8C42'],[1,COL.coral]],
-  colorbar:{title:{text:title,font:{size:10}},thickness:10,len:0.7}}; }
-
-async function drawCurves(){
-  const r=await fetch('/api/curves'); const txt=await r.text(); const d=JSON.parse(txt); DATA.curves=d;
-  DATA.curves._size=dataSizeLabel(txt, d.scanned_bytes);
-  const byKey={}; d.curves.forEach(p=>{const k=p.vin+'|'+p.day;(byKey[k]=byKey[k]||{x:[],y:[],hot:p.hot_seconds}); byKey[k].x.push(p.t_sec); byKey[k].y.push(p.cell_temp_max_c);});
-  const keys=Object.keys(byKey);
-  const maxHot=Math.max(1,...keys.map(k=>byKey[k].hot));
-  const traces=keys.map(k=>{const c=byKey[k]; const t=c.hot/maxHot;
-    const col = c.hot<1? 'rgba(154,167,173,0.25)' : `rgba(255,${Math.round(140-100*t)},${Math.round(66-40*t)},0.9)`;
-    return {x:c.x,y:c.y,mode:'lines',type:'scattergl',line:{width:c.hot<1?1:2,color:col},hoverinfo:'skip',showlegend:false};});
-  // dummy trace to show a colorbar legend for hot-seconds
-  traces.push({x:[null],y:[null],mode:'markers',showlegend:false,
-    marker:{color:[0],cmin:0,cmax:maxHot,...colorbar('hot-seconds')}});
-  Plotly.newPlot('left',traces,{margin:{t:6,r:10,b:40,l:48},dragmode:'select',
-    xaxis:{title:'seconds into trip'},yaxis:{title:'cell_temp_max (°C)'},
-    shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:55,y1:55,line:{color:COL.coral,dash:'dot',width:1}}]},
-    {displayModeBar:true,displaylogo:false,modeBarButtonsToRemove:['lasso2d','zoom2d','pan2d','autoScale2d']});
-  document.getElementById('left-stat').textContent=`${keys.length} raw car-day curves overlaid (every point rendered — no binning) · ${DATA.curves._size}`;
-  wireSelect();
-}
-
 async function drawDensity(){
   const r=await fetch('/api/density'); const txt=await r.text(); const d=JSON.parse(txt); DATA.density=d;
   DATA.density._size=dataSizeLabel(txt, d.scanned_bytes);
@@ -169,27 +135,11 @@ async function drawDensity(){
   wireSelect();
 }
 
-async function drawPhase(){
-  const r=await fetch('/api/phase'); const txt=await r.text(); const d=JSON.parse(txt); DATA.phase=d;
-  DATA.phase._size=dataSizeLabel(txt, d.scanned_bytes);
-  const byKey={}; d.points.forEach(p=>{const k=p.vin+'|'+p.day;(byKey[k]=byKey[k]||{x:[],y:[],hot:p.hot_seconds}); byKey[k].x.push(p.pack_current_a); byKey[k].y.push(p.cell_temp_max_c);});
-  const keys=Object.keys(byKey); const maxHot=Math.max(1,...keys.map(k=>byKey[k].hot));
-  const traces=keys.map(k=>{const c=byKey[k]; const t=c.hot/maxHot;
-    const col=c.hot<1?'rgba(154,167,173,0.18)':`rgba(255,${Math.round(140-100*t)},${Math.round(66-40*t)},0.7)`;
-    return {x:c.x,y:c.y,mode:'lines',type:'scattergl',line:{width:1,color:col},hoverinfo:'skip',showlegend:false};});
-  traces.push({x:[null],y:[null],mode:'markers',showlegend:false,marker:{color:[0],cmin:0,cmax:maxHot,...colorbar('hot-seconds')}});
-  Plotly.newPlot('left',traces,{margin:{t:6,r:10,b:40,l:48},dragmode:'select',
-    xaxis:{title:'pack_current (A)  — negative = discharge'},yaxis:{title:'cell_temp_max (°C)'}},
-    {displayModeBar:true,displaylogo:false,modeBarButtonsToRemove:['lasso2d','zoom2d','pan2d','autoScale2d']});
-  document.getElementById('left-stat').textContent=`${keys.length} raw current–temperature loops overlaid · ${DATA.phase._size}`;
-  wireSelect();
-}
-
 function wireSelect(){
   document.getElementById('left').on('plotly_selected', ev=>{
     if(!ev||!ev.range) return;
     const [x0,x1]=ev.range.x, [y0,y1]=ev.range.y;
-    doBrush({view:VIEW,x0,x1,y0,y1});
+    doBrush({x0,x1,y0,y1});
   });
 }
 
@@ -231,51 +181,38 @@ async function doBrush(box){
   // NO auto-selection: the single-vehicle panel stays hidden until the user clicks a row.
 }
 
-// bottom plot: one vehicle, raw samples, axes follow the active view
-const BOTTOM_AXES = {
-  curves: {xk:'t_sec',          xt:'seconds into trip', mode:'lines'},
-  density:{xk:'soc_pct',        xt:'State of Charge (%)', mode:'markers'},
-  phase:  {xk:'pack_current_a', xt:'pack_current (A)',  mode:'markers'}
-};
+// bottom plot: one vehicle, raw samples — cell temperature vs State of Charge (the density axes)
 async function drawVehicle(vin){
   const bp=document.getElementById('bottom-panel');
   bp.classList.remove('hidden');
   document.getElementById('bp-badge').textContent='loading '+vin.slice(-6)+'…';
   bp.scrollIntoView({behavior:'smooth', block:'start'});
   const r=await fetch('/api/vehicle?vin='+encodeURIComponent(vin));
-  const txt=await r.text(); const d=JSON.parse(txt); const cfg=BOTTOM_AXES[VIEW]; const S=d.samples;
+  const txt=await r.text(); const d=JSON.parse(txt); const S=d.samples;
   const vSize=dataSizeLabel(txt, d.scanned_bytes);
-  const trace={ x:S.map(p=>p[cfg.xk]), y:S.map(p=>p.cell_temp_max_c), type:'scattergl',
-    mode:cfg.mode, line:{width:1,color:COL.coral},
+  const trace={ x:S.map(p=>p.soc_pct), y:S.map(p=>p.cell_temp_max_c), type:'scattergl',
+    mode:'markers',
     marker:{size:3,color:S.map(p=>p.cell_temp_max_c),
       colorscale:[[0,'#9aa7ad'],[0.6,'#FF8C42'],[1,COL.coral]],
       colorbar:{title:{text:'°C',font:{size:9}},thickness:8,len:0.7}},
-    name:vin.slice(-6),hoverinfo:cfg.mode==='markers'?'x+y':'skip'};
+    name:vin.slice(-6),hoverinfo:'x+y'};
   Plotly.newPlot('bottom',[trace],{margin:{t:6,r:10,b:40,l:48},showlegend:false,
-    xaxis:{title:cfg.xt},yaxis:{title:'cell_temp_max (°C)'},
+    xaxis:{title:'State of Charge (%)'},yaxis:{title:'cell_temp_max (°C)'},
     shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:55,y1:55,line:{color:COL.coral,dash:'dot',width:1}}]},
     {displayModeBar:false});
   document.getElementById('bp-badge').textContent=`${vin.slice(-6)} · ${S.length.toLocaleString()} raw samples · ${vSize}`;
   document.getElementById('bottom-title').firstChild.textContent=
-     `Single-vehicle detail — ${cfg.xt.split(' (')[0]} vs cell temp `;
+     `Single-vehicle detail — State of Charge vs cell temp `;
 }
 
-function setView(v){
-  VIEW=v;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.v===v));
-  document.getElementById('left-title').textContent=DESC[v].title;
-  document.getElementById('tab-note').textContent='Tableau limit: '+DESC[v].note;
-  document.getElementById('tabdesc').textContent=DESC[v].tab;
-  // switching tabs resets everything to the "nothing selected" state
-  document.getElementById('right').innerHTML=''; document.getElementById('suspects').innerHTML='';
-  document.getElementById('bottom').innerHTML='';
-  document.getElementById('right-panel').classList.add('hidden');
-  document.getElementById('bottom-panel').classList.add('hidden');
-  document.getElementById('rp-badge').textContent=''; document.getElementById('right-stat').textContent='';
-  ({curves:drawCurves,density:drawDensity,phase:drawPhase})[v]();
+// single view: render the density plot + its labels once, on load
+function init(){
+  document.getElementById('left-title').textContent=DENSITY_DESC.title;
+  document.getElementById('tab-note').textContent='Tableau limit: '+DENSITY_DESC.note;
+  document.getElementById('tabdesc').textContent=DENSITY_DESC.tab;
+  drawDensity();
 }
-document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>setView(t.dataset.v));
-(async()=>{ loadStats(); await loadBand(); setView('curves'); })();
+(async()=>{ loadStats(); await loadBand(); init(); })();
 </script>
 </body>
 </html>
