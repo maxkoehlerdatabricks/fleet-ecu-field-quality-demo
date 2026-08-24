@@ -48,21 +48,104 @@ head = ('<title>Fleet EV Battery — Field-Quality Monitor</title>\n'
 '<style>' + merged_css + '</style>\n')
 
 tabs = ('<div class="doctabs">\n'
-'  <button class="doctab active" data-tab="story"><span class="idx">1</span>The Case</button>\n'
-'  <button class="doctab" data-tab="workflow"><span class="idx">2</span>App Workflow</button>\n'
-'  <button class="doctab" data-tab="tools"><span class="idx">3</span>Tools</button>\n'
+'  <button class="doctab active" data-tab="why"><span class="idx">1</span>Why Databricks Apps</button>\n'
+'  <button class="doctab" data-tab="story"><span class="idx">2</span>The Case</button>\n'
+'  <button class="doctab" data-tab="workflow"><span class="idx">3</span>App Workflow</button>\n'
+'  <button class="doctab" data-tab="tools"><span class="idx">4</span>Tools</button>\n'
 '</div>\n')
 
 # ---------------- TAB 1: flowing narrative ----------------
-tab1 = '''<div class="panel-doc active" id="tab-story">
+tab_why = '''<div class="panel-doc active" id="tab-why">
 <header>
   <div class="hero">
-    <div class="eyebrow">Fleet EV Battery · field-quality monitor</div>
+    <div class="eyebrow">Databricks demo · visualizing massive data</div>
+    <h1>Why Databricks Apps</h1>
+    <p class="lede">This demo makes one argument: for interactive visualization of <strong>massive
+      data</strong> — hundreds of millions of raw rows you need to see, not just summarize — a
+      <strong>Databricks App</strong> does what classic BI tools like Power BI, Tableau and Qlik
+      structurally cannot. The rest of this document proves it on a concrete example. The example is a
+      fleet of EV batteries; the point is general.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section>
+  <div class="eyebrow">The problem, in general</div>
+  <h2>Massive data is hard to <em>visualize</em>, not just to store</h2>
+  <p class="sub">Storing billions of rows is a solved problem. Letting a human <em>see</em> them —
+    interactively, at full detail, to find the rare thing that matters — is where the classic BI tools
+    hit a wall. Two limits do it.</p>
+  <div class="proof">
+    <div class="stat"><div class="k">Rendering ceiling</div><div class="v" style="font-size:26px">~10³–10⁴</div>
+      <div class="u">marks a BI chart will draw — then it samples or aggregates the rest</div></div>
+    <div class="stat"><div class="k">Data residency</div><div class="v" style="font-size:26px">1 : 1</div>
+      <div class="u">a copy of the data (extract / imported model) must be loaded, and it grows with the data</div></div>
+    <div class="stat hot"><div class="k">The casualty</div><div class="v" style="font-size:26px">outliers</div>
+      <div class="u">the rare rows are exactly what sampling and aggregation erase</div></div>
+  </div>
+  <p class="callout">A classic BI tool stays fast by keeping a resident copy of the data and drawing
+    only a few thousand marks. As the data grows it must summarize harder — and for finding the rare,
+    important row, the summary is where the answer disappears.</p>
+</section>
+
+<section>
+  <div class="eyebrow">The Databricks App answer</div>
+  <h2>Keep the data in the lakehouse; move only what the eye needs</h2>
+  <p class="sub">A Databricks App is a lightweight web app served next to the lakehouse. It never loads
+    a resident copy and never tries to draw everything. Instead it does two things classic BI cannot
+    combine at scale:</p>
+  <div class="mean">
+    <div class="cell"><h4><span class="dot" style="background:var(--ok)"></span>Full-resolution overview</h4>
+      <p>The whole dataset is aggregated <em>in the warehouse</em> into a picture that keeps the rare
+        cell visible — no client-side point cap, no sampling of the tail.</p></div>
+    <div class="cell"><h4><span class="dot" style="background:var(--ok)"></span>Raw detail on demand</h4>
+      <p>Any selection becomes a bounded query that fetches just those raw rows from the lakehouse —
+        data that was never loaded into the browser.</p></div>
+    <div class="cell"><h4><span class="dot" style="background:var(--cool)"></span>Flat with scale</h4>
+      <p>Every interaction is a bounded query, so ten times the data barely changes the response time.
+        No growing extract, no refresh cliff.</p></div>
+    <div class="cell"><h4><span class="dot" style="background:var(--cool)"></span>Custom interaction</h4>
+      <p>It is a real app, so it can do things a BI canvas can’t — a lasso that triggers a server-side
+        fetch, a sample-size control, a drill that pulls one entity’s full raw signal.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">This demo, in one line each</div>
+  <h2>How the rest of the document proves it</h2>
+  <p class="sub">The argument is carried by a concrete example so it stays honest and testable.</p>
+  <ul class="products">
+    <li><div><div class="pname">2 · The Case</div><div class="psig mono">the example</div></div>
+      <p>A fleet of EV batteries. The thing worth finding — a pack running too hot — is a rare, raw,
+        seconds-long signal that any average hides. This is the <em>massive-data-visualization</em>
+        problem in concrete form.</p></li>
+    <li><div><div class="pname">3 · App Workflow</div><div class="psig mono">the solution, working</div></div>
+      <p>The live Databricks App, top to bottom: a full-resolution fleet picture, a lasso with a
+        sample-size control, and a drill to one vehicle’s complete raw trace.</p></li>
+    <li><div><div class="pname">4 · Tools</div><div class="psig mono">the head-to-head</div></div>
+      <p>The same three steps attempted in Tableau, Power BI and Qlik — where each falls back to a
+        summary, and why. Plus reaction time as the fleet grows.</p></li>
+  </ul>
+  <p class="verdict">The takeaway you should leave with: <b>when the job is to see and interrogate
+    massive data at full fidelity — not just chart a summary of it — a Databricks App is the right
+    tool, and a resident-extract BI tool like Power BI is the wrong shape for it.</b> The battery is
+    just where you can watch that play out.</p>
+</section>
+</div>
+</div>
+'''
+
+tab1 = '''<div class="panel-doc" id="tab-story">
+<header>
+  <div class="hero">
+    <div class="eyebrow">Example case · fleet EV battery</div>
     <h1>The outlier in the pack</h1>
-    <p class="lede">This is a monitor for the <strong>traction batteries of a fleet of electric
-      vehicles</strong>. Every pack streams the temperature of its hottest cell, ten times a second.
-      The job is to find the one battery, among hundreds, that runs too hot — before it becomes a
-      failure. Here is the battery, what the data shows, and how the dashboard works.</p>
+    <p class="lede">The example that carries this demo: a monitor for the <strong>traction batteries
+      of a fleet of electric vehicles</strong>. Every pack streams the temperature of its hottest cell,
+      ten times a second. The job is to find the one battery, among hundreds, that runs too hot — before
+      it becomes a failure. It is a textbook case of needing to <em>see</em> a rare signal inside massive
+      raw data.</p>
     <div class="ramp"></div>
     <div class="ramp-labels mono">
       <span>28&nbsp;°C&nbsp;nominal</span><span>45&nbsp;°C&nbsp;elevated</span>
@@ -403,7 +486,7 @@ script = ("<script>\n"
 "  document.querySelectorAll('.panel-doc').forEach(p=>p.classList.toggle('active',p.id==='tab-'+id));\n"
 "  window.scrollTo(0,0);\n});\n</script>\n")
 
-out = head + tabs + tab1 + tab_workflow + tab2 + script
+out = head + tabs + tab_why + tab1 + tab_workflow + tab2 + script
 open("dashboard-explainer.html", "w", encoding="utf-8").write(out)
 
 # validate
