@@ -718,6 +718,18 @@ footer{border-top:1px solid var(--line);padding:40px 0 60px;color:var(--slate);f
       lasso both fetches and renders them.</p>
   </div>
 
+  <div class="cmp-step"><p class="h">Step 2 · the sampling slider</p><h3>Set how many vehicles the fetch pulls — a live control on the query</h3>
+    <div class="cmp">
+      <div class="r app yes"><span class="tn">Databricks App</span><span class="mk">✓</span><p>A slider parameterises the pushdown query (take the N hottest). Move it, the query re-runs and re-fetches.</p></div>
+      <div class="r no"><span class="tn">Tableau</span><span class="mk">✕</span><p>A parameter can filter marks already loaded, but it can’t change how many raw rows are fetched into the fetch itself.</p></div>
+      <div class="r no"><span class="tn">Power BI</span><span class="mk">✕</span><p>Slicers filter the loaded model; there’s no control that re-shapes a raw-row fetch on demand.</p></div>
+      <div class="r no"><span class="tn">Qlik</span><span class="mk">✕</span><p>Selections filter the in-memory model; a slider that resizes a raw fetch from the source isn’t the model.</p></div>
+    </div>
+    <p class="modes-note">This is a control on the <em>query</em>, not on already-loaded marks — it decides
+      how much raw data the next fetch brings back. It only makes sense when the app owns the fetch, which
+      is why the BI tools have no equivalent.</p>
+  </div>
+
   <div class="cmp-step"><p class="h">Step 2 · the overlay</p><h3>Overlay the sampled vehicles’ raw curves, one line each</h3>
     <div class="cmp">
       <div class="r app yes"><span class="tn">Databricks App</span><span class="mk">✓</span><p>Draws each sampled vehicle’s raw trace. The failing curve’s shape is visible.</p></div>
