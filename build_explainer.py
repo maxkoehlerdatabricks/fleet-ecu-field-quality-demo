@@ -61,12 +61,50 @@ tab_css = """
 .modes th{text-align:left;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.03em;
   text-transform:uppercase;color:var(--slate);font-weight:600;padding:10px 12px;
   background:color-mix(in srgb,var(--ground) 55%,var(--panel));border-bottom:1px solid var(--line);vertical-align:bottom}
-.modes td{padding:10px 12px;border-bottom:1px solid var(--line);color:var(--ink-soft);vertical-align:top}
-.modes td.tl{font-weight:600;color:var(--ink);white-space:nowrap}
+.modes td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--ink-soft);vertical-align:top;
+  font-size:12.5px;line-height:1.45}
+.modes td.tl{font-weight:600;color:var(--ink);white-space:nowrap;vertical-align:top;
+  border-right:1px solid var(--line);font-size:13.5px}
 .modes tr:last-child td{border-bottom:none}
+.modes tr.tool-top td{border-top:2px solid var(--line)}
 .modes td b{color:var(--ink)}
-.modes .why{display:block;margin-top:7px;padding-top:7px;border-top:1px dashed var(--line);
-  color:var(--hot);font-size:12.5px;line-height:1.5}
+/* axis label cell (leading colored tag) */
+.modes td.ax{white-space:nowrap;border-right:1px solid var(--line);vertical-align:top}
+.modes .tag{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:9.5px;
+  letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:2px 7px;border-radius:5px}
+.modes tr.scale .tag{background:color-mix(in srgb,var(--hot) 16%,transparent);color:var(--hot)}
+.modes tr.fidel .tag{background:color-mix(in srgb,var(--warm) 18%,transparent);color:var(--warm)}
+.modes tr.flow .tag{background:color-mix(in srgb,var(--cool) 16%,transparent);color:var(--cool)}
+.modes tr.act .tag{background:color-mix(in srgb,var(--viol) 18%,transparent);color:var(--viol)}
+.modes tr.layer .tag{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.modes tr.maint .tag{background:color-mix(in srgb,var(--rose) 16%,transparent);color:var(--rose)}
+.modes tr.cost .tag{background:color-mix(in srgb,var(--slate) 20%,transparent);color:var(--slate)}
+.modes tr.talk .tag{background:color-mix(in srgb,var(--teal) 16%,transparent);color:var(--teal)}
+.modes tr.sem .tag{background:color-mix(in srgb,var(--gold) 18%,transparent);color:var(--gold)}
+/* faint left accent bar per axis, on the axis cell */
+.modes td.ax{position:relative}
+.modes td.ax::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px}
+.modes tr.scale td.ax::before{background:var(--hot)}
+.modes tr.fidel td.ax::before{background:var(--warm)}
+.modes tr.flow td.ax::before{background:var(--cool)}
+.modes tr.act td.ax::before{background:var(--viol)}
+.modes tr.layer td.ax::before{background:var(--ok)}
+.modes tr.maint td.ax::before{background:var(--rose)}
+.modes tr.cost td.ax::before{background:var(--slate)}
+.modes tr.talk td.ax::before{background:var(--teal)}
+.modes tr.sem td.ax::before{background:var(--gold)}
+/* both-mode rows get a subtle tint so the span reads as "either mode" */
+.modes tr.flow td.span,.modes tr.act td.span,.modes tr.layer td.span,
+.modes tr.maint td.span,.modes tr.cost td.span,
+.modes tr.talk td.span,.modes tr.sem td.span{
+  background:color-mix(in srgb,var(--ground) 45%,var(--panel))}
+.modes td.span .lead{color:var(--ink);font-weight:600}
+.modes td.mono{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--slate)}
+.scale-inline{color:var(--hot);font-weight:600}
+.fidel-inline{color:var(--warm);font-weight:600}
+.flow-inline{color:var(--cool);font-weight:600}
+.act-inline{color:var(--viol);font-weight:600}
+.layer-inline{color:var(--ok);font-weight:600}
 .modes-note{font-size:13.5px;color:var(--ink-soft);margin:12px 2px 0}
 .modes-note b{color:var(--ink)}
 .field{background:color-mix(in srgb,var(--warm) 10%,var(--panel));
@@ -276,98 +314,292 @@ tab2 = '''<div class="panel-doc" id="tab-tools">
 
 <section>
   <div class="eyebrow">The root bottleneck</div>
-  <h2>The wall is the rendering cap, not where the data lives</h2>
-  <p class="sub">A chart can only draw so many marks — a few thousand — no matter how the tool is
-    connected. To keep a billion raw points inside that ceiling, <em>something</em> must reduce them
-    to a few thousand before they reach the screen. That reduction is where the outlier dies, and it
-    happens in <b>every</b> connection mode.</p>
-
-  <p><b>Assume the server products</b> (Tableau Server, Power BI Service, Qlik Sense Enterprise). Each
-    connects one of two ways. Each cell says <em>what it is</em> and <em>why it’s still a
-    bottleneck</em> for a billion raw points — the DirectQuery column included, since that’s the mode
-    people assume solves it.</p>
+  <h2>Summary</h2>
 
   <div class="modes">
     <table>
-      <thead><tr><th>Tool</th><th>Pre-loaded &mdash; a resident copy on the server</th><th>DirectQuery / live &mdash; no resident copy</th></tr></thead>
+      <thead><tr><th>Tool</th><th></th><th>Pre-loaded &mdash; a resident copy on the server</th><th>DirectQuery / live &mdash; no resident copy</th></tr></thead>
       <tbody>
-        <tr><td class="tl">Tableau Server</td>
-            <td>Published <b>Hyper extract</b> on the server; scheduled refresh.
-              <span class="why">Bottleneck: at raw grain the extract is the size of the raw data (GB–TB) and refreshes scale with it; drop to a summary extract and the outlier is gone.</span></td>
-            <td><b>Live connection</b>: each interaction queries the source; no copy held.
-              <span class="why">Bottleneck: the viz still caps marks, so Tableau makes the query aggregate before it draws — plus a round-trip per interaction.</span>
-              <span class="why">Also: it is not one query. VizQL emits one or more SQL statements per worksheet, so a dashboard fans out into many — Databricks’ own guidance notes one filter on a five-chart dashboard fires at least ten queries at once, and COUNTD / LOD / high-cardinality filters compile to expensive DISTINCT and subquery patterns. Each runs fast on the warehouse; the volume and shape are the wall.</span></td></tr>
-        <tr><td class="tl">Power BI Service</td>
-            <td><b>Import</b> model in the capacity’s in-memory VertiPaq engine; scheduled refresh.
-              <span class="why">Bottleneck: raw grain must fit in capacity RAM and grows with the fleet; a pre-aggregated model fits but no longer contains the outlier.</span></td>
-            <td><b>DirectQuery</b>: SQL sent to the source per interaction; no model held.
-              <span class="why">Bottleneck: the visual cap (~3.5k–10k marks) forces a GROUP BY / top-N before rendering — you get a summary, plus a round-trip per click.</span>
-              <span class="why">Also: each visual fires one or more queries, so a page of visuals fires many, and every slicer or cross-filter re-issues them. DAX compiles to SQL at query time, so complex measures and DistinctCount produce subquery-heavy statements — Microsoft’s own DirectQuery guidance says to limit visuals per page and disable cross-highlighting for this reason. A five-visual tab has been seen generating over a hundred queries on Databricks SQL, each fast on its own.</span></td></tr>
-        <tr><td class="tl">Qlik Sense Enterprise</td>
-            <td>QVF <b>app loaded into the engine’s RAM</b> (tables + associative index); scheduled reload.
-              <span class="why">Bottleneck: raw grain must fit in engine RAM and reload scales with it; summarize to fit and the outlier disappears.</span></td>
-            <td><b>Direct Query / ODAG</b>: queries pushed to the source; not in the in-memory engine.
-              <span class="why">Bottleneck: the chart still caps marks so the pushed query is aggregated; ODAG only loads a chosen slice into memory first — a round-trip either way.</span>
-              <span class="why">Also: per Qlik’s own docs each chart object builds and sends its own SQL and every selection re-issues it, so a busy sheet fans out into many queries — COUNT(DISTINCT) compiles to correlated subqueries and high-cardinality filters to huge IN-lists that stress the warehouse. This is the live-mode cost only; Qlik’s default in-memory engine issues no per-interaction SQL at all.</span></td></tr>
+        <!-- TABLEAU -->
+        <tr class="tool-top scale"><td class="tl" rowspan="9">Tableau<br>Server</td>
+            <td class="ax"><span class="tag">Scale</span></td>
+            <td>At raw grain the extract is the size of the raw data (GB–TB) and refresh scales with it — it stops fitting as the fleet grows.</td>
+            <td>VizQL emits many SQL per dashboard — one filter on a 5-chart view fires ≥10 queries; COUNTD / LOD compile to costly subqueries.</td></tr>
+        <tr class="fidel"><td class="ax"><span class="tag">Fidelity</span></td>
+            <td>Shrink it to a summary extract to fit, and the outlier is gone.</td>
+            <td>The viz still caps marks, so the query is aggregated before it draws.</td></tr>
+        <tr class="flow"><td class="ax"><span class="tag">Workflow</span></td>
+            <td class="span" colspan="2">Drill-through and filter actions re-slice loaded / summarized data; no step re-issues a new query to <em>fetch raw rows</em> it never loaded.</td></tr>
+        <tr class="act"><td class="ax"><span class="tag">Actions</span></td>
+            <td class="span" colspan="2">Renders only. Running code, writing a row or sending a mail needs a bolted-on extension / webhook, not the tool itself.</td></tr>
+        <tr class="layer"><td class="ax"><span class="tag">Layers</span></td>
+            <td class="span" colspan="2">A fixed chart catalog (plus dual-axis / reference-line tricks). No open plotting grammar to stack arbitrary layers in one figure.</td></tr>
+        <tr class="maint"><td class="ax"><span class="tag">Maintenance</span></td>
+            <td class="span" colspan="2">A separate server to size, patch and govern, with extracts to schedule — and a second copy of the data to keep in sync.</td></tr>
+        <tr class="cost"><td class="ax"><span class="tag">Cost</span></td>
+            <td class="span" colspan="2">Per-seat viewer licences plus the server, and duplicate storage for the resident extract.</td></tr>
+        <tr class="talk"><td class="ax"><span class="tag">Talk-to-data</span></td>
+            <td class="span" colspan="2">Ask Data / Pulse answer in natural language, but only over the tool’s own data source — not a conversational layer on the governed lakehouse.</td></tr>
+        <tr class="sem"><td class="ax"><span class="tag">Semantics</span></td>
+            <td class="span" colspan="2">Measures and LOD calcs live inside the workbook / data source, so definitions sit in the BI tool and drift between tools — not central at the data.</td></tr>
+
+        <!-- POWER BI -->
+        <tr class="tool-top scale"><td class="tl" rowspan="9">Power BI<br>Service</td>
+            <td class="ax"><span class="tag">Scale</span></td>
+            <td>Raw grain must fit in capacity RAM and grows with the fleet — pre-aggregate to fit.</td>
+            <td>Each visual fires 1+ queries, re-issued on every slicer; a 5-visual tab can generate 100+. DAX &amp; DistinctCount → subquery-heavy SQL.</td></tr>
+        <tr class="fidel"><td class="ax"><span class="tag">Fidelity</span></td>
+            <td>Once pre-aggregated, the outlier is no longer in the model.</td>
+            <td>The ~3.5k–10k mark cap forces a GROUP BY / top-N first.</td></tr>
+        <tr class="flow"><td class="ax"><span class="tag">Workflow</span></td>
+            <td class="span" colspan="2">Slicers and cross-filters re-slice the loaded model; there is no brush that pushes a new predicate to fetch raw rows on demand.</td></tr>
+        <tr class="act"><td class="ax"><span class="tag">Actions</span></td>
+            <td class="span" colspan="2">Power Automate / write-back buttons exist, but as add-on integrations — the dashboard itself doesn’t run your code or job.</td></tr>
+        <tr class="layer"><td class="ax"><span class="tag">Layers</span></td>
+            <td class="span" colspan="2">Built-in visuals plus custom visuals, but not a free grammar-of-graphics: no arbitrary layered composition in a single figure.</td></tr>
+        <tr class="maint"><td class="ax"><span class="tag">Maintenance</span></td>
+            <td class="span" colspan="2">A capacity to size and a semantic model to refresh and govern, kept in sync with the source — a second platform to run.</td></tr>
+        <tr class="cost"><td class="ax"><span class="tag">Cost</span></td>
+            <td class="span" colspan="2">Per-user / capacity licensing, plus duplicate storage and memory for the Import model.</td></tr>
+        <tr class="talk"><td class="ax"><span class="tag">Talk-to-data</span></td>
+            <td class="span" colspan="2">Q&amp;A / Copilot answer in natural language, but over the semantic model — scoped to what was modeled in Power BI, not the governed lakehouse.</td></tr>
+        <tr class="sem"><td class="ax"><span class="tag">Semantics</span></td>
+            <td class="span" colspan="2">Measures live in the DAX semantic model inside Power BI, duplicated and re-governed per report — not central at the data.</td></tr>
+
+        <!-- QLIK -->
+        <tr class="tool-top scale"><td class="tl" rowspan="9">Qlik Sense<br>Enterprise</td>
+            <td class="ax"><span class="tag">Scale</span></td>
+            <td>Raw grain must fit in engine RAM and reload scales with it.</td>
+            <td>Each object sends its own SQL, re-issued on every selection; COUNT(DISTINCT) → correlated subqueries. (In-memory default fires no SQL.)</td></tr>
+        <tr class="fidel"><td class="ax"><span class="tag">Fidelity</span></td>
+            <td>Summarize to fit and the outlier is gone.</td>
+            <td>The chart caps marks, so the pushed query is aggregated.</td></tr>
+        <tr class="flow"><td class="ax"><span class="tag">Workflow</span></td>
+            <td class="span" colspan="2">Associative selection is powerful, but over data already in memory; a slider that re-sizes a raw fetch from the source isn’t part of the model.</td></tr>
+        <tr class="act"><td class="ax"><span class="tag">Actions</span></td>
+            <td class="span" colspan="2">Renders and selects. Triggering a job or an email needs external automation, not the sheet itself.</td></tr>
+        <tr class="layer"><td class="ax"><span class="tag">Layers</span></td>
+            <td class="span" colspan="2">A fixed chart set plus extensions; no ggplot / Plotly-style layering of arbitrary geoms in one plot.</td></tr>
+        <tr class="maint"><td class="ax"><span class="tag">Maintenance</span></td>
+            <td class="span" colspan="2">A separate engine node to size and a QVF app to reload and govern, kept in sync with the source.</td></tr>
+        <tr class="cost"><td class="ax"><span class="tag">Cost</span></td>
+            <td class="span" colspan="2">Per-user licensing plus the engine, and duplicate storage/RAM for the in-memory app.</td></tr>
+        <tr class="talk"><td class="ax"><span class="tag">Talk-to-data</span></td>
+            <td class="span" colspan="2">Insight Advisor / Answers give natural-language search, but over the loaded app model — not a conversational layer on the governed lakehouse.</td></tr>
+        <tr class="sem"><td class="ax"><span class="tag">Semantics</span></td>
+            <td class="span" colspan="2">Master items and load-script logic define the model inside the Qlik app, duplicated per app — not central at the data.</td></tr>
       </tbody>
     </table>
-    <p class="modes-note"><b>The through-line:</b> pre-load hits a size/refresh wall at raw grain (and
-      DirectQuery removes only that); but in <em>every</em> cell the chart’s few-thousand-mark cap forces
-      the data down to a summary before it’s drawn. <b>That rendering cap — not the resident copy — is
-      the mode-independent bottleneck</b>, and it is exactly what erases the outlier. The <em>Also</em>
-      lines add the second live-mode cost: the tool generates the SQL, so a single dashboard fans out into
-      many queries and re-fires them on every interaction. The App writes its own queries — one per plot,
-      exactly what it needs.</p>
   </div>
-
-  <p>The Databricks App does not hit that wall: it never renders raw points in the browser. It computes
-    a <b>full-resolution aggregate in the warehouse</b> (a density that keeps the rare cell visible),
-    and fetches <b>raw rows on demand</b> only for a bounded selection. No resident copy to size, and
-    no few-thousand-mark ceiling on the overview.</p>
-  <figure class="drawfig">
-    <svg viewBox="0 0 720 210" role="img" aria-label="Classic BI tools load a resident copy of the data and render a capped number of marks; the Databricks App queries the lakehouse and fetches only what each step needs">
-      <!-- BI side -->
-      <text x="170" y="24" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--hot)">CLASSIC BI TOOL</text>
-      <rect x="40" y="40" width="120" height="46" rx="6" fill="none" stroke="currentColor" stroke-width="1.3"/>
-      <text x="100" y="68" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="currentColor">lakehouse</text>
-      <line x1="160" y1="63" x2="215" y2="63" stroke="var(--hot)" stroke-width="1.5" marker-end="url(#a1)"/>
-      <text x="188" y="55" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--hot)">big load</text>
-      <rect x="218" y="40" width="120" height="46" rx="6" fill="none" stroke="var(--hot)" stroke-width="1.6"/>
-      <text x="278" y="62" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--hot)">resident copy</text>
-      <text x="278" y="77" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="var(--slate)">extract / model</text>
-      <line x1="278" y1="90" x2="278" y2="120" stroke="currentColor" stroke-width="1.3" marker-end="url(#a1)"/>
-      <rect x="218" y="124" width="120" height="40" rx="6" fill="none" stroke="currentColor" stroke-width="1.3"/>
-      <text x="278" y="148" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="currentColor">~few k marks</text>
-      <text x="278" y="184" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--hot)">must summarize to fit</text>
-      <!-- App side -->
-      <text x="545" y="24" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--ok)">DATABRICKS APP</text>
-      <rect x="415" y="40" width="120" height="46" rx="6" fill="none" stroke="currentColor" stroke-width="1.3"/>
-      <text x="475" y="62" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="currentColor">lakehouse</text>
-      <text x="475" y="77" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="var(--slate)">all raw stays here</text>
-      <line x1="535" y1="55" x2="600" y2="55" stroke="var(--ok)" stroke-width="1.5" marker-end="url(#a2)"/>
-      <text x="567" y="47" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--ok)">bounded query</text>
-      <line x1="600" y1="72" x2="535" y2="72" stroke="var(--ok)" stroke-width="1.5" marker-end="url(#a2b)"/>
-      <text x="567" y="86" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--ok)">only rows needed</text>
-      <rect x="603" y="40" width="96" height="80" rx="6" fill="none" stroke="var(--ok)" stroke-width="1.6"/>
-      <text x="651" y="76" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--ok)">browser</text>
-      <text x="651" y="92" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="var(--slate)">holds ~nothing</text>
-      <text x="545" y="150" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--ok)">full-res aggregate + raw on demand</text>
-      <defs>
-        <marker id="a1" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0,0 9,4.5 0,9" fill="var(--hot)"/></marker>
-        <marker id="a2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0,0 9,4.5 0,9" fill="var(--ok)"/></marker>
-        <marker id="a2b" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><polygon points="0,0 9,4.5 0,9" fill="var(--ok)"/></marker>
-      </defs>
-    </svg>
-    <figcaption>In its default mode a BI tool front-loads a resident copy and renders a capped number
-      of marks, so it must summarize. (A query-live mode — Tableau live, Power BI DirectQuery, Qlik
-      Direct Query — skips the copy but keeps the mark cap and adds a per-click round-trip.) The App
-      leaves the raw data in the lakehouse and each interaction is a bounded query.</figcaption>
-  </figure>
 </section>
 
 <section>
-  <div class="eyebrow">Step by step</div>
-  <h2>Each step, in Tableau, Power BI and Qlik</h2>
+  <div class="eyebrow">Functionality</div>
+  <h2>Workflow</h2>
+  <p class="sub">An App is a program: the interface <b>builds itself as you click</b> — a new plot appears
+    only when you reach that step, backed by a fresh query. A dashboard is a <b>fixed set of visuals</b>;
+    clicking only filters what is already there.</p>
+  <div class="draw">
+    <figure>
+      <svg viewBox="0 0 720 250" role="img" aria-label="The Databricks App runs a funnel of three queries — an aggregate over all data, a bounded fetch of a selected region, and a drill to one vehicle's raw rows — each a new query to the lakehouse; a BI dashboard runs the same steps only over the single copy it loaded up front and cannot fetch new raw rows">
+        <!-- APP lane -->
+        <text x="14" y="40" font-family="IBM Plex Mono" font-size="12" fill="var(--ok)">DATABRICKS APP</text>
+        <text x="14" y="55" font-family="IBM Plex Mono" font-size="9.5" fill="var(--slate)">UI builds as you click</text>
+        <g font-family="IBM Plex Mono" font-size="10.5">
+          <rect x="150" y="30" width="130" height="46" rx="7" fill="none" stroke="var(--ok)" stroke-width="1.6"/>
+          <text x="215" y="50" text-anchor="middle" fill="currentColor">aggregate</text>
+          <text x="215" y="64" text-anchor="middle" fill="var(--slate)" font-size="9">density over ALL</text>
+          <rect x="320" y="30" width="130" height="46" rx="7" fill="none" stroke="var(--ok)" stroke-width="1.6"/>
+          <text x="385" y="50" text-anchor="middle" fill="currentColor">bounded fetch</text>
+          <text x="385" y="64" text-anchor="middle" fill="var(--slate)" font-size="9">brush → WHERE</text>
+          <rect x="490" y="30" width="130" height="46" rx="7" fill="none" stroke="var(--ok)" stroke-width="1.6"/>
+          <text x="555" y="50" text-anchor="middle" fill="currentColor">drill to one</text>
+          <text x="555" y="64" text-anchor="middle" fill="var(--slate)" font-size="9">raw 10 Hz trace</text>
+        </g>
+        <line x1="280" y1="53" x2="318" y2="53" stroke="var(--ok)" stroke-width="1.6" marker-end="url(#wf)"/>
+        <line x1="450" y1="53" x2="488" y2="53" stroke="var(--ok)" stroke-width="1.6" marker-end="url(#wf)"/>
+        <text x="299" y="46" text-anchor="middle" font-family="IBM Plex Mono" font-size="8.5" fill="var(--ok)">narrow</text>
+        <text x="469" y="46" text-anchor="middle" font-family="IBM Plex Mono" font-size="8.5" fill="var(--ok)">narrow</text>
+        <!-- lakehouse feeds every step -->
+        <rect x="150" y="96" width="470" height="30" rx="6" fill="none" stroke="var(--slate)" stroke-width="1.1" stroke-dasharray="4 4"/>
+        <text x="385" y="115" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--slate)">lakehouse — raw grain, queried fresh at each step</text>
+        <line x1="215" y1="96" x2="215" y2="78" stroke="var(--slate)" stroke-width="1" marker-end="url(#wfg)"/>
+        <line x1="385" y1="96" x2="385" y2="78" stroke="var(--slate)" stroke-width="1" marker-end="url(#wfg)"/>
+        <line x1="555" y1="96" x2="555" y2="78" stroke="var(--slate)" stroke-width="1" marker-end="url(#wfg)"/>
+
+        <!-- BI lane -->
+        <text x="14" y="172" font-family="IBM Plex Mono" font-size="12" fill="var(--hot)">CLASSIC BI</text>
+        <text x="14" y="187" font-family="IBM Plex Mono" font-size="9.5" fill="var(--slate)">fixed visuals, laid out</text>
+        <g font-family="IBM Plex Mono" font-size="10.5">
+          <rect x="150" y="162" width="130" height="46" rx="7" fill="none" stroke="currentColor" stroke-width="1.3"/>
+          <text x="215" y="182" text-anchor="middle" fill="currentColor">view</text>
+          <text x="215" y="196" text-anchor="middle" fill="var(--slate)" font-size="9">on loaded copy</text>
+          <rect x="320" y="162" width="130" height="46" rx="7" fill="none" stroke="currentColor" stroke-width="1.3"/>
+          <text x="385" y="182" text-anchor="middle" fill="currentColor">filter / drill</text>
+          <text x="385" y="196" text-anchor="middle" fill="var(--slate)" font-size="9">re-slice same copy</text>
+          <rect x="490" y="162" width="130" height="46" rx="7" fill="none" stroke="var(--hot)" stroke-width="1.6"/>
+          <text x="555" y="182" text-anchor="middle" fill="var(--hot)">raw rows?</text>
+          <text x="555" y="196" text-anchor="middle" fill="var(--hot)" font-size="9">not loaded → can’t</text>
+        </g>
+        <line x1="280" y1="185" x2="318" y2="185" stroke="currentColor" stroke-width="1.3" marker-end="url(#wfk)"/>
+        <line x1="450" y1="185" x2="488" y2="185" stroke="var(--hot)" stroke-width="1.6" marker-end="url(#wfh)"/>
+        <!-- one resident copy under first two only -->
+        <rect x="150" y="228" width="300" height="20" rx="5" fill="none" stroke="var(--hot)" stroke-width="1.2"/>
+        <text x="300" y="242" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--hot)">one resident copy — loaded up front, never re-queried</text>
+        <line x1="215" y1="228" x2="215" y2="210" stroke="var(--hot)" stroke-width="1" marker-end="url(#wfh2)"/>
+        <line x1="385" y1="228" x2="385" y2="210" stroke="var(--hot)" stroke-width="1" marker-end="url(#wfh2)"/>
+        <defs>
+          <marker id="wf" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="var(--ok)"/></marker>
+          <marker id="wfg" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="var(--slate)"/></marker>
+          <marker id="wfk" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="currentColor"/></marker>
+          <marker id="wfh" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="var(--hot)"/></marker>
+          <marker id="wfh2" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="var(--hot)"/></marker>
+        </defs>
+      </svg>
+      <figcaption>Each App step is a fresh query to the lakehouse, narrowing to one vehicle’s raw trace.
+        A dashboard runs on the one copy it loaded, so raw rows it never loaded have nowhere to come from.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Functionality</div>
+  <h2>Actions</h2>
+  <p class="sub">Finding the hot pack is only half the job — someone has to <em>do</em> something. An App is
+    an application: a button runs backend code, so the next step happens in place. A dashboard renders; the
+    action is a manual handoff to another tool or person, and that gap is where the process slows down.</p>
+  <div class="draw">
+    <h3>What happens after the outlier is found</h3>
+    <figure>
+      <svg viewBox="0 0 720 210" role="img" aria-label="After finding the outlier, the Databricks App runs the follow-up action directly from a button — opening a ticket, emailing the owner, or triggering a job — in one continuous flow; a BI dashboard has to hand off manually to export, another tool, or a person before the action can happen, adding a slow gap">
+        <!-- APP row -->
+        <text x="14" y="42" font-family="IBM Plex Mono" font-size="12" fill="var(--ok)">DATABRICKS APP</text>
+        <g font-family="IBM Plex Mono" font-size="10.5">
+          <rect x="185" y="26" width="120" height="42" rx="7" fill="none" stroke="currentColor" stroke-width="1.3"/>
+          <text x="245" y="51" text-anchor="middle" fill="currentColor">outlier found</text>
+          <rect x="345" y="26" width="110" height="42" rx="7" fill="none" stroke="var(--viol)" stroke-width="1.7"/>
+          <text x="400" y="45" text-anchor="middle" fill="var(--viol)">▸ button</text>
+          <text x="400" y="59" text-anchor="middle" fill="var(--slate)" font-size="8.5">in the app</text>
+          <rect x="495" y="18" width="210" height="58" rx="7" fill="none" stroke="var(--ok)" stroke-width="1.6"/>
+          <text x="600" y="38" text-anchor="middle" fill="var(--ok)">backend runs it</text>
+          <text x="600" y="53" text-anchor="middle" fill="var(--slate)" font-size="9">open ticket · email owner</text>
+          <text x="600" y="66" text-anchor="middle" fill="var(--slate)" font-size="9">trigger job / notebook</text>
+        </g>
+        <line x1="305" y1="47" x2="343" y2="47" stroke="currentColor" stroke-width="1.3" marker-end="url(#ac)"/>
+        <line x1="455" y1="47" x2="493" y2="47" stroke="var(--ok)" stroke-width="1.6" marker-end="url(#aco)"/>
+        <text x="360" y="90" font-family="IBM Plex Mono" font-size="9.5" fill="var(--ok)">one continuous flow — seconds</text>
+
+        <!-- BI row -->
+        <text x="14" y="140" font-family="IBM Plex Mono" font-size="12" fill="var(--hot)">CLASSIC BI</text>
+        <g font-family="IBM Plex Mono" font-size="10.5">
+          <rect x="185" y="124" width="120" height="42" rx="7" fill="none" stroke="currentColor" stroke-width="1.3"/>
+          <text x="245" y="149" text-anchor="middle" fill="currentColor">outlier found</text>
+          <!-- manual gap -->
+          <rect x="345" y="120" width="150" height="50" rx="7" fill="color-mix(in srgb,var(--hot) 9%,var(--panel))" stroke="var(--hot)" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <text x="420" y="139" text-anchor="middle" fill="var(--hot)">✋ manual step</text>
+          <text x="420" y="153" text-anchor="middle" fill="var(--slate)" font-size="8.5">export · switch tool</text>
+          <text x="420" y="164" text-anchor="middle" fill="var(--slate)" font-size="8.5">email a person</text>
+          <rect x="535" y="124" width="170" height="42" rx="7" fill="none" stroke="currentColor" stroke-width="1.3"/>
+          <text x="620" y="143" text-anchor="middle" fill="currentColor">action, elsewhere</text>
+          <text x="620" y="157" text-anchor="middle" fill="var(--slate)" font-size="9">in another system</text>
+        </g>
+        <line x1="305" y1="145" x2="343" y2="145" stroke="currentColor" stroke-width="1.3" marker-end="url(#ack)"/>
+        <line x1="495" y1="145" x2="533" y2="145" stroke="var(--hot)" stroke-width="1.5" marker-end="url(#ach)"/>
+        <text x="360" y="188" font-family="IBM Plex Mono" font-size="9.5" fill="var(--hot)">hand-off breaks the flow — hours to days</text>
+        <defs>
+          <marker id="ac" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="currentColor"/></marker>
+          <marker id="aco" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="var(--ok)"/></marker>
+          <marker id="ack" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="currentColor"/></marker>
+          <marker id="ach" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="var(--hot)"/></marker>
+        </defs>
+      </svg>
+      <figcaption>The App closes the loop in one place — a button calls backend code that opens the ticket,
+        emails the owner or kicks off a job. A dashboard ends at the chart; the follow-up is a manual
+        hand-off to another tool or person, and that break is the slow part.</figcaption>
+    </figure>
+    <div class="reads">Power BI has Power Automate buttons and Tableau has extensions, so an action is
+      <em>possible</em> — but as bolted-on glue, not the tool running your own code. <b>An App is code, so
+      the action lives right next to the analysis.</b></div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Functionality</div>
+  <h2>Layers</h2>
+  <p class="sub"><b>Plotly</b> and <b>ggplot2</b> build a figure as a stack of layers, added almost
+    endlessly — a density base, raw traces, a threshold, annotations — all in one plot. A BI tool gives
+    you a fixed chart type; the App renders these figures directly.</p>
+  <div class="draw">
+    <figure>
+      <svg viewBox="0 0 720 300" role="img" aria-label="A grammar-of-graphics figure is composed of layers added in order: a density or ribbon layer at the bottom, then a confidence band, individual raw lines, a mean line, points, a threshold rule, and text annotations on top — each layer drawn over the previous one, and more can always be added">
+        <!-- exploded stack on the left -->
+        <g font-family="IBM Plex Mono" font-size="10">
+          <!-- each layer as a tilted card, offset upward -->
+          <g transform="translate(60,210)">
+            <rect x="0" y="0" width="200" height="42" rx="5" fill="color-mix(in srgb,var(--cool) 14%,var(--panel))" stroke="var(--cool)" stroke-width="1.2"/>
+            <text x="12" y="18" fill="currentColor">1 · density / ribbon base</text>
+            <text x="12" y="33" fill="var(--slate)" font-size="8.5">geom_ribbon / add_ribbons</text>
+          </g>
+          <g transform="translate(60,168)">
+            <rect x="0" y="0" width="200" height="42" rx="5" fill="color-mix(in srgb,var(--warm) 14%,var(--panel))" stroke="var(--warm)" stroke-width="1.2"/>
+            <text x="12" y="18" fill="currentColor">2 · confidence band</text>
+            <text x="12" y="33" fill="var(--slate)" font-size="8.5">geom_smooth (se)</text>
+          </g>
+          <g transform="translate(60,126)">
+            <rect x="0" y="0" width="200" height="42" rx="5" fill="color-mix(in srgb,var(--slate) 16%,var(--panel))" stroke="var(--slate)" stroke-width="1.2"/>
+            <text x="12" y="18" fill="currentColor">3 · individual raw lines</text>
+            <text x="12" y="33" fill="var(--slate)" font-size="8.5">geom_line, one per vehicle</text>
+          </g>
+          <g transform="translate(60,84)">
+            <rect x="0" y="0" width="200" height="42" rx="5" fill="color-mix(in srgb,var(--ok) 14%,var(--panel))" stroke="var(--ok)" stroke-width="1.2"/>
+            <text x="12" y="18" fill="currentColor">4 · points + error bars</text>
+            <text x="12" y="33" fill="var(--slate)" font-size="8.5">geom_point / geom_errorbar</text>
+          </g>
+          <g transform="translate(60,42)">
+            <rect x="0" y="0" width="200" height="42" rx="5" fill="color-mix(in srgb,var(--hot) 12%,var(--panel))" stroke="var(--hot)" stroke-width="1.2"/>
+            <text x="12" y="18" fill="currentColor">5 · threshold + annotations</text>
+            <text x="12" y="33" fill="var(--slate)" font-size="8.5">geom_hline / annotate</text>
+          </g>
+          <text x="160" y="24" text-anchor="middle" fill="var(--slate)" font-size="9">… add more, almost endlessly ↑</text>
+        </g>
+        <!-- equals arrow -->
+        <text x="300" y="160" text-anchor="middle" font-family="IBM Plex Mono" font-size="22" fill="var(--slate)">=</text>
+        <!-- composited result on the right -->
+        <g transform="translate(340,40)">
+          <rect x="0" y="0" width="340" height="230" rx="8" fill="none" stroke="currentColor" stroke-width="1.3"/>
+          <!-- axes -->
+          <line x1="34" y1="196" x2="322" y2="196" stroke="var(--slate)" stroke-width="1"/>
+          <line x1="34" y1="24" x2="34" y2="196" stroke="var(--slate)" stroke-width="1"/>
+          <!-- layer 1: ribbon base -->
+          <path d="M34,150 L110,140 L180,120 L250,132 L322,116 L322,196 L34,196 Z" fill="color-mix(in srgb,var(--cool) 22%,transparent)" stroke="none"/>
+          <!-- layer 2: confidence band -->
+          <path d="M34,120 L110,108 L180,86 L250,100 L322,80 L322,110 L250,128 L180,112 L110,132 L34,144 Z" fill="color-mix(in srgb,var(--warm) 26%,transparent)" stroke="none"/>
+          <!-- layer 3: raw lines -->
+          <polyline points="34,140 110,120 180,74 250,110 322,92" fill="none" stroke="var(--slate)" stroke-width="1" opacity="0.7"/>
+          <polyline points="34,152 110,132 180,96 250,120 322,104" fill="none" stroke="var(--slate)" stroke-width="1" opacity="0.5"/>
+          <!-- layer 3b: the hot outlier line -->
+          <polyline points="34,150 110,128 180,52 250,116 322,100" fill="none" stroke="var(--hot)" stroke-width="1.8"/>
+          <!-- layer 4: points -->
+          <g fill="var(--ok)"><circle cx="110" cy="120" r="2.6"/><circle cx="180" cy="74" r="2.6"/><circle cx="250" cy="110" r="2.6"/><circle cx="322" cy="92" r="2.6"/></g>
+          <!-- layer 5: threshold + annotation -->
+          <line x1="34" y1="64" x2="322" y2="64" stroke="var(--hot)" stroke-width="1.3" stroke-dasharray="5 4"/>
+          <text x="316" y="58" text-anchor="end" font-family="IBM Plex Mono" font-size="9" fill="var(--hot)">threshold</text>
+          <circle cx="180" cy="52" r="9" fill="none" stroke="var(--hot)" stroke-width="1.4"/>
+          <text x="180" y="30" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="var(--hot)">outlier</text>
+          <text x="170" y="220" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--slate)">all layers, one figure</text>
+        </g>
+      </svg>
+      <figcaption>Layer order is draw order: each layer overlays the last, so one figure carries the
+        base, the raw curves, points, a threshold and labels at once. A BI chart type can’t be composed this way.</figcaption>
+    </figure>
+    <div class="reads">It’s the App’s density-plus-raw-overlay view: the hot trace stays visible
+      <b>because it’s its own layer on top</b>.</div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">Functionality</div>
+  <h2>Fidelity</h2>
   <p class="sub">Take the app’s three steps in turn. One short, traceable line per tool.</p>
 
   <div class="legend">
@@ -429,109 +661,177 @@ tab2 = '''<div class="panel-doc" id="tab-tools">
 </section>
 
 <section>
-  <div class="eyebrow">Reaction time on mass data</div>
-  <h2>Hundreds of vehicles, billions of raw points</h2>
-  <p class="sub">Where the data lives also decides how the tool behaves as the fleet grows.</p>
+  <div class="eyebrow">Functionality</div>
+  <h2>Scale</h2>
+  <p class="sub">The seconds a dashboard takes to open depend on how much data it must move. As the fleet
+    grows, the classic BI tools climb — and past a point they stop working, because the resident copy no
+    longer fits or the live queries no longer return in time. The App stays in seconds: its overview reads
+    one pre-computed aggregate, so it grows only gently with the fleet instead of scaling with the raw data.</p>
   <div class="rt">
-    <div class="row head"><span>Tool</span><span>Initial load / first interactive view</span><span>time</span></div>
-    <div class="row"><span class="tool-name">Databricks App</span><div class="bar fast"><span style="width:14%"></span></div><span class="t">~2 s</span></div>
-    <div class="row"><span class="tool-name">Tableau</span><div class="bar slow"><span style="width:100%"></span></div><span class="t">~15 s</span></div>
-    <div class="row"><span class="tool-name">Power BI</span><div class="bar mid"><span style="width:70%"></span></div><span class="t">~10 s</span></div>
-    <div class="row"><span class="tool-name">Qlik</span><div class="bar mid"><span style="width:65%"></span></div><span class="t">~9 s</span></div>
+    <div class="row head"><span>Fleet</span><span>Classic BI — first interactive view</span><span></span></div>
+    <div class="row"><span class="tool-name">~20 cars</span><div class="bar mid"><span style="width:20%"></span></div><span class="t">~4 s</span></div>
+    <div class="row"><span class="tool-name">~200 cars</span><div class="bar mid"><span style="width:55%"></span></div><span class="t">~15 s</span></div>
+    <div class="row"><span class="tool-name">~2,000 cars</span><div class="bar slow"><span style="width:90%"></span></div><span class="t">minutes</span></div>
+    <div class="row"><span class="tool-name">fleet-wide</span><div class="bar slow"><span style="width:100%"></span></div><span class="t breaks">breaks</span></div>
   </div>
-  <div class="rtnote">Illustrative, for hundreds of vehicles / billions of raw samples. BI figures =
-    pre-load a raw-grain resident extract/model (or a per-interaction DirectQuery round-trip) + first
-    render; the App = a pre-materialized aggregate from the warehouse. <b>The App stays flat as the
-    fleet grows</b> (each lasso is a bounded query). <b>Pre-load mode degrades</b> as the resident copy
-    grows; <b>DirectQuery mode</b> pays a source round-trip per interaction instead — different cost,
-    same ceiling on what the chart can draw.</div>
+  <div class="rt" style="margin-top:14px">
+    <div class="row head"><span>Fleet</span><span>Databricks App — first interactive view</span><span></span></div>
+    <div class="row"><span class="tool-name">~200 cars</span><div class="bar fast"><span style="width:12%"></span></div><span class="t">~2–3 s</span></div>
+    <div class="row"><span class="tool-name">fleet-wide</span><div class="bar fast"><span style="width:20%"></span></div><span class="t">a few s</span></div>
+  </div>
+  <div class="rtnote">Illustrative. The BI number is a raw-grain extract/model refresh (or a live-query
+    round-trip) plus first render — both scale with the data, so the time rises with the fleet and
+    eventually the copy won’t fit / the query won’t return. <b>The App’s overview is a bounded query
+    against a pre-materialized aggregate</b>, so it reads a fixed-size summary rather than the raw data —
+    the first view stays in seconds and grows only gently as the fleet grows.</div>
+</section>
 
-  <div class="field">
-    <div class="fl">From the field · live mode</div>
-    <p>A customer on a well-tuned <b>Tableau Server</b>, using a <b>live connection</b>, saw the
-      dashboard take <b>minutes to load</b>. That is expected, not a misconfiguration.</p>
-    <p>A live connection holds no copy, so opening the dashboard runs its queries against the source and
-      waits:</p>
-    <ol>
-      <li>each worksheet fires a query to the source,</li>
-      <li>the source aggregates over the full data,</li>
-      <li>Tableau waits for every result, then renders.</li>
-    </ol>
-    <p>Over a large source that round-trip is minutes. Tuning trims it; it can’t remove the wait, and it
-      is paid again on each interaction.</p>
-    <p><b>The App loads in seconds.</b> Its overview reads one small pre-computed aggregate, not a live
-      scan of the raw source — so the first view is fast, and each drill is a bounded query.</p>
+<section>
+  <div class="eyebrow">Functionality</div>
+  <h2>Maintenance</h2>
+  <p class="sub">A classic BI tool is a second platform bolted onto the lakehouse. It has to be sized,
+    kept in sync, and governed on its own.</p>
+  <div class="cmp-step">
+    <div class="cmp">
+      <div class="r no"><span class="tn">Classic BI</span><span class="mk">✕</span><p>A separate server to size and patch, extracts/models to schedule and refresh, and a second copy of the data to secure and keep in sync with the source.</p></div>
+      <div class="r no"><span class="tn">Classic BI</span><span class="mk">✕</span><p>Access is governed twice — once in Unity Catalog, again in the BI tool — so permissions drift and the resident copy can go stale between refreshes.</p></div>
+      <div class="r app yes"><span class="tn">Databricks App</span><span class="mk">✓</span><p>Runs on the lakehouse you already have. No extracts to refresh, no second copy to secure — it reads live tables under the same Unity Catalog governance.</p></div>
+    </div>
   </div>
 </section>
 
 <section>
-  <div class="eyebrow">The picture in one chart</div>
-  <h2>Why massive data breaks classic BI visuals</h2>
-  <p class="sub">A chart renders only so many marks — whether the data is loaded resident or queried
-    live — so as the dataset grows, the fraction it can show shrinks, and it fills the gap by
-    summarizing.</p>
-
-  <figure class="drawfig">
-    <svg viewBox="0 0 720 340" role="img" aria-label="As data volume grows on a log scale, a classic BI tool's rendered detail stays flat at a few thousand marks while the data it must represent climbs, opening a widening blind spot; the Databricks App tracks the data because it queries bounded slices instead of rendering everything">
-      <!-- axes -->
-      <line x1="70" y1="40" x2="70" y2="270" stroke="currentColor" stroke-width="1.2"/>
-      <line x1="70" y1="270" x2="680" y2="270" stroke="currentColor" stroke-width="1.2"/>
-      <text x="70" y="300" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">thousands</text>
-      <text x="250" y="300" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">millions</text>
-      <text x="430" y="300" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">100s of millions</text>
-      <text x="620" y="300" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">billions</text>
-      <text x="375" y="325" text-anchor="middle" font-family="IBM Plex Mono" font-size="11.5" fill="var(--ink-soft)">data volume (raw samples) →</text>
-      <text x="30" y="155" text-anchor="middle" font-family="IBM Plex Mono" font-size="11.5" fill="var(--ink-soft)" transform="rotate(-90 30 155)">fidelity you can actually see →</text>
-
-      <!-- "the data" reference line: climbs with volume -->
-      <polyline points="70,250 250,180 430,110 620,55" fill="none" stroke="var(--ink-soft)" stroke-width="1.5" stroke-dasharray="5 4"/>
-      <text x="600" y="44" text-anchor="end" font-family="IBM Plex Mono" font-size="11" fill="var(--ink-soft)">the data that exists</text>
-
-      <!-- blind spot: area between BI ceiling and the data line -->
-      <path d="M70,250 L250,180 L430,110 L620,55 L620,232 L430,232 L250,232 L70,232 Z"
-            fill="var(--hot)" opacity="0.10"/>
-      <text x="470" y="175" font-family="IBM Plex Mono" font-size="12" fill="var(--hot)">the blind spot</text>
-      <text x="470" y="192" font-family="IBM Plex Mono" font-size="10.5" fill="var(--hot)">summarized / sampled away</text>
-
-      <!-- classic BI ceiling: flat at a few thousand rendered marks -->
-      <line x1="70" y1="232" x2="680" y2="232" stroke="var(--hot)" stroke-width="2.4"/>
-      <circle cx="70" cy="232" r="3.5" fill="var(--hot)"/>
-      <text x="76" y="224" font-family="IBM Plex Mono" font-size="11" fill="var(--hot)">classic BI tool · ~few thousand marks (flat)</text>
-
-      <!-- Databricks App: tracks the data (full fidelity via bounded queries) -->
-      <polyline points="70,250 250,180 430,110 620,55" fill="none" stroke="var(--ok)" stroke-width="2.6"/>
-      <circle cx="620" cy="55" r="4" fill="var(--ok)"/>
-      <text x="612" y="72" text-anchor="end" font-family="IBM Plex Mono" font-size="11" fill="var(--ok)">Databricks App · full fidelity</text>
-    </svg>
-    <figcaption>A classic BI tool renders a fixed ceiling of marks no matter how much data exists, so the
-      gap between “what’s in the data” and “what you can see” widens with scale — and it closes that gap
-      by summarizing, which erases the rare outlier. The App tracks the data instead, because it never
-      renders everything: it shows a full-resolution aggregate and fetches raw detail in bounded slices.</figcaption>
-  </figure>
-
-  <p><strong>The wall is rendering:</strong> no chart draws a billion marks, so the data must be
-    reduced to a few thousand before it’s shown — in every mode — and the outlier is what the reduction
-    drops. (Pre-load mode adds a second problem — a resident copy that grows with the data — but
-    DirectQuery removes that one and still hits the rendering wall.) The App sidesteps it: a
-    full-resolution aggregate for the overview, raw rows fetched on demand for a bounded selection.</p>
+  <div class="eyebrow">Functionality</div>
+  <h2>Cost</h2>
+  <p class="sub">The two cost lines a classic BI deployment adds on top of the lakehouse — seats and a
+    second copy of the data — are the two the App doesn’t have.</p>
+  <div class="cmp-step">
+    <div class="cmp">
+      <div class="r no"><span class="tn">Classic BI</span><span class="mk">✕</span><p>Per-seat dashboard subscriptions for every viewer, plus a dedicated capacity/server to license and run.</p></div>
+      <div class="r no"><span class="tn">Classic BI</span><span class="mk">✕</span><p>The resident extract/model is a duplicate of the raw data — extra storage and memory that grows with the fleet.</p></div>
+      <div class="r app yes"><span class="tn">Databricks App</span><span class="mk">✓</span><p>Served on existing Databricks compute, billed per use. No per-seat licence, and no second copy of the data to store.</p></div>
+    </div>
+  </div>
 </section>
 
 <section>
-  <div class="eyebrow">The conclusion</div>
-  <h2>Why it can only be the Databricks App</h2>
-  <p class="sub">One reason is decisive and mode-independent — fidelity. The others are real
-    operational benefits, but they apply to the pre-load mode (DirectQuery avoids them), so they are
-    the supporting case, not the core.</p>
-  <div class="reasons">
-    <div class="rz" style="border-left-color:var(--hot)"><h4>Fidelity — the decisive one</h4><p>The chart’s few-thousand-mark cap forces BI to reduce a billion points to a summary <em>in every mode</em>, dropping the outlier. The App renders a full-resolution aggregate and fetches raw detail on demand.</p></div>
-    <div class="rz"><h4>Scalability</h4><p>In pre-load mode, more vehicles = a bigger resident copy and slower refresh; DirectQuery trades that for a per-click round-trip. The App’s bounded queries stay flat.</p></div>
-    <div class="rz"><h4>Maintenance</h4><p>No separate BI system to size, refresh and govern — it runs on the lakehouse you already have.</p></div>
-    <div class="rz"><h4>Licensing</h4><p>No per-seat dashboard subscription; users are served on existing compute.</p></div>
+  <div class="eyebrow">Functionality</div>
+  <h2>Talk-to-data</h2>
+  <p class="sub">The BI tools all have natural-language features. But they answer over the tool’s <b>own
+    model</b> — scoped to what was loaded and modeled there. A Databricks App can ask the <b>governed
+    lakehouse directly</b>, e.g. by embedding a Genie space, so the question reaches the real data.</p>
+  <div class="draw">
+    <figure>
+      <svg viewBox="0 0 720 190" role="img" aria-label="A Databricks App or Genie answers a natural-language question directly against the governed lakehouse; a BI tool's natural-language feature answers only over the tool's own loaded model, one step removed from the data">
+        <!-- APP row -->
+        <text x="14" y="40" font-family="IBM Plex Mono" font-size="12" fill="var(--ok)">DATABRICKS APP / GENIE</text>
+        <g font-family="IBM Plex Mono" font-size="10.5">
+          <rect x="230" y="24" width="120" height="42" rx="7" fill="none" stroke="currentColor" stroke-width="1.3"/>
+          <text x="290" y="43" text-anchor="middle" fill="currentColor">“ask a question”</text>
+          <text x="290" y="57" text-anchor="middle" fill="var(--slate)" font-size="9">natural language</text>
+          <rect x="560" y="24" width="145" height="42" rx="7" fill="none" stroke="var(--ok)" stroke-width="1.6"/>
+          <text x="632" y="43" text-anchor="middle" fill="var(--ok)">governed lakehouse</text>
+          <text x="632" y="57" text-anchor="middle" fill="var(--slate)" font-size="9">the real, raw data</text>
+        </g>
+        <line x1="350" y1="45" x2="558" y2="45" stroke="var(--ok)" stroke-width="1.6" marker-end="url(#tk1)"/>
+        <text x="454" y="38" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="var(--ok)">asks directly</text>
+
+        <!-- BI row -->
+        <text x="14" y="128" font-family="IBM Plex Mono" font-size="12" fill="var(--hot)">CLASSIC BI · NL</text>
+        <g font-family="IBM Plex Mono" font-size="10.5">
+          <rect x="230" y="112" width="120" height="42" rx="7" fill="none" stroke="currentColor" stroke-width="1.3"/>
+          <text x="290" y="131" text-anchor="middle" fill="currentColor">Q&amp;A / Copilot</text>
+          <text x="290" y="145" text-anchor="middle" fill="var(--slate)" font-size="9">Insight Advisor</text>
+          <rect x="405" y="112" width="120" height="42" rx="7" fill="none" stroke="var(--hot)" stroke-width="1.5"/>
+          <text x="465" y="131" text-anchor="middle" fill="var(--hot)">tool’s model</text>
+          <text x="465" y="145" text-anchor="middle" fill="var(--slate)" font-size="9">loaded extract</text>
+          <rect x="585" y="112" width="120" height="42" rx="7" fill="none" stroke="currentColor" stroke-width="1.1" stroke-dasharray="4 4"/>
+          <text x="645" y="135" text-anchor="middle" fill="var(--slate)">lakehouse</text>
+        </g>
+        <line x1="350" y1="133" x2="403" y2="133" stroke="currentColor" stroke-width="1.3" marker-end="url(#tkk)"/>
+        <line x1="525" y1="133" x2="583" y2="133" stroke="var(--slate)" stroke-width="1.1" stroke-dasharray="4 4"/>
+        <text x="465" y="176" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="var(--hot)">answers only over what was modeled — a step removed from the data</text>
+        <defs>
+          <marker id="tk1" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="var(--ok)"/></marker>
+          <marker id="tkk" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="currentColor"/></marker>
+        </defs>
+      </svg>
+      <figcaption>A BI tool’s natural-language answer is only as complete as the model it was given. Genie
+        (embedded in the App) asks the governed lakehouse itself.</figcaption>
+    </figure>
   </div>
-  <p class="verdict">The raw data <b>never leaves the lakehouse</b>: a full-resolution aggregate for the
-    overview, and a fresh <b>bounded query</b> for every drill. So a Databricks App sees the outlier
-    <b>and</b> reaches the raw detail, stays fast as the fleet grows, and needs no separate BI tool to
-    license and maintain.</p>
+</section>
+
+<section>
+  <div class="eyebrow">Functionality</div>
+  <h2>Semantics</h2>
+  <p class="sub">The <b>semantic layer</b> — what “scrap rate” or “on-time” means — lives <b>inside</b> each
+    BI tool (DAX model, LOD calcs, master items), so every tool keeps its own copy and they drift. On
+    Databricks it lives <b>once, at the data</b> (Unity Catalog metric views), and every consumer — the
+    App, Genie, any tool — reads the same definition.</p>
+  <div class="draw">
+    <figure>
+      <svg viewBox="0 0 720 240" role="img" aria-label="On Databricks the semantic layer sits centrally at the data in Unity Catalog and every consumer reads the same definition; with classic BI each tool holds its own copy of the definitions, which drift apart">
+        <!-- CENTRAL (left) -->
+        <text x="150" y="24" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--ok)">CENTRAL — AT THE DATA</text>
+        <rect x="95" y="36" width="110" height="44" rx="7" fill="none" stroke="var(--ok)" stroke-width="1.7"/>
+        <text x="150" y="54" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--ok)">metric layer</text>
+        <text x="150" y="68" text-anchor="middle" font-family="IBM Plex Mono" font-size="8.5" fill="var(--slate)">Unity Catalog</text>
+        <g stroke="var(--ok)" stroke-width="1.4">
+          <line x1="150" y1="80" x2="70" y2="150" marker-end="url(#se1)"/>
+          <line x1="150" y1="80" x2="150" y2="150" marker-end="url(#se1)"/>
+          <line x1="150" y1="80" x2="230" y2="150" marker-end="url(#se1)"/>
+        </g>
+        <g font-family="IBM Plex Mono" font-size="9.5">
+          <rect x="34" y="152" width="72" height="34" rx="6" fill="none" stroke="currentColor" stroke-width="1.1"/>
+          <text x="70" y="173" text-anchor="middle" fill="currentColor">App</text>
+          <rect x="114" y="152" width="72" height="34" rx="6" fill="none" stroke="currentColor" stroke-width="1.1"/>
+          <text x="150" y="173" text-anchor="middle" fill="currentColor">Genie</text>
+          <rect x="194" y="152" width="72" height="34" rx="6" fill="none" stroke="currentColor" stroke-width="1.1"/>
+          <text x="230" y="173" text-anchor="middle" fill="currentColor">any tool</text>
+        </g>
+        <text x="150" y="212" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--ok)">one definition · governed once</text>
+
+        <!-- divider -->
+        <line x1="360" y1="20" x2="360" y2="222" stroke="var(--line)" stroke-width="1"/>
+
+        <!-- SILOED (right) -->
+        <text x="540" y="24" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--hot)">SILOED — IN EACH TOOL</text>
+        <g font-family="IBM Plex Mono" font-size="9.5">
+          <rect x="410" y="46" width="90" height="46" rx="6" fill="none" stroke="var(--hot)" stroke-width="1.4"/>
+          <text x="455" y="66" text-anchor="middle" fill="var(--hot)">Tableau</text>
+          <text x="455" y="80" text-anchor="middle" fill="var(--slate)" font-size="8">LOD calcs</text>
+          <rect x="515" y="46" width="90" height="46" rx="6" fill="none" stroke="var(--hot)" stroke-width="1.4"/>
+          <text x="560" y="66" text-anchor="middle" fill="var(--hot)">Power BI</text>
+          <text x="560" y="80" text-anchor="middle" fill="var(--slate)" font-size="8">DAX model</text>
+          <rect x="620" y="46" width="90" height="46" rx="6" fill="none" stroke="var(--hot)" stroke-width="1.4"/>
+          <text x="665" y="66" text-anchor="middle" fill="var(--hot)">Qlik</text>
+          <text x="665" y="80" text-anchor="middle" fill="var(--slate)" font-size="8">master items</text>
+        </g>
+        <!-- each its own copy of defs -->
+        <g stroke="var(--hot)" stroke-width="1.2" stroke-dasharray="4 3">
+          <line x1="455" y1="92" x2="455" y2="150" marker-end="url(#se2)"/>
+          <line x1="560" y1="92" x2="560" y2="150" marker-end="url(#se2)"/>
+          <line x1="665" y1="92" x2="665" y2="150" marker-end="url(#se2)"/>
+        </g>
+        <g font-family="IBM Plex Mono" font-size="8.5" fill="var(--slate)">
+          <rect x="425" y="152" width="60" height="26" rx="5" fill="none" stroke="var(--line)" stroke-width="1"/>
+          <text x="455" y="169" text-anchor="middle">own copy</text>
+          <rect x="530" y="152" width="60" height="26" rx="5" fill="none" stroke="var(--line)" stroke-width="1"/>
+          <text x="560" y="169" text-anchor="middle">own copy</text>
+          <rect x="635" y="152" width="60" height="26" rx="5" fill="none" stroke="var(--line)" stroke-width="1"/>
+          <text x="665" y="169" text-anchor="middle">own copy</text>
+        </g>
+        <text x="560" y="212" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="var(--hot)">three definitions · they drift</text>
+        <defs>
+          <marker id="se1" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="var(--ok)"/></marker>
+          <marker id="se2" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="var(--hot)"/></marker>
+        </defs>
+      </svg>
+      <figcaption>Define the metric once at the data and every consumer agrees; define it inside each tool
+        and the same question gets three answers.</figcaption>
+    </figure>
+  </div>
 </section>
 </div>
 </div>
