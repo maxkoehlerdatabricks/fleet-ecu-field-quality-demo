@@ -65,6 +65,8 @@ tab_css = """
 .modes td.tl{font-weight:600;color:var(--ink);white-space:nowrap}
 .modes tr:last-child td{border-bottom:none}
 .modes td b{color:var(--ink)}
+.modes .why{display:block;margin-top:7px;padding-top:7px;border-top:1px dashed var(--line);
+  color:var(--hot);font-size:12.5px;line-height:1.5}
 .modes-note{font-size:13.5px;color:var(--ink-soft);margin:12px 2px 0}
 .modes-note b{color:var(--ink)}
 .drawfig{margin:22px 0 6px}
@@ -271,42 +273,35 @@ tab2 = '''<div class="panel-doc" id="tab-tools">
     happens in <b>every</b> connection mode.</p>
 
   <p><b>Assume the server products</b> (Tableau Server, Power BI Service, Qlik Sense Enterprise). Each
-    connects one of two ways — pre-load a resident copy, or query the source live — and it is worth
-    being precise about what sits in that copy, because the trap is the <em>grain</em> you load it at.</p>
+    connects one of two ways. Each cell says <em>what it is</em> and <em>why it’s still a
+    bottleneck</em> for a billion raw points — the DirectQuery column included, since that’s the mode
+    people assume solves it.</p>
 
   <div class="modes">
     <table>
       <thead><tr><th>Tool</th><th>Pre-loaded &mdash; a resident copy on the server</th><th>DirectQuery / live &mdash; no resident copy</th></tr></thead>
       <tbody>
         <tr><td class="tl">Tableau Server</td>
-            <td>A published <b>Hyper extract</b> — the rows/columns you defined, at the grain you chose; scheduled refresh.</td>
-            <td><b>Live connection</b>: each interaction queries the source.</td></tr>
+            <td>Published <b>Hyper extract</b> on the server; scheduled refresh.
+              <span class="why">Bottleneck: at raw grain the extract is the size of the raw data (GB–TB) and refreshes scale with it; drop to a summary extract and the outlier is gone.</span></td>
+            <td><b>Live connection</b>: each interaction queries the source; no copy held.
+              <span class="why">Bottleneck: the viz still caps marks, so Tableau makes the query aggregate before it draws — plus a round-trip per interaction.</span></td></tr>
         <tr><td class="tl">Power BI Service</td>
-            <td>An <b>Import</b> model in the capacity’s in-memory VertiPaq engine (compressed columnar); scheduled refresh.</td>
-            <td><b>DirectQuery</b>: SQL sent to the source per interaction.</td></tr>
+            <td><b>Import</b> model in the capacity’s in-memory VertiPaq engine; scheduled refresh.
+              <span class="why">Bottleneck: raw grain must fit in capacity RAM and grows with the fleet; a pre-aggregated model fits but no longer contains the outlier.</span></td>
+            <td><b>DirectQuery</b>: SQL sent to the source per interaction; no model held.
+              <span class="why">Bottleneck: the visual cap (~3.5k–10k marks) forces a GROUP BY / top-N before rendering — you get a summary, plus a round-trip per click.</span></td></tr>
         <tr><td class="tl">Qlik Sense Enterprise</td>
-            <td>A QVF <b>app loaded into the engine’s RAM</b> (tables + associative symbol index); scheduled reload.</td>
-            <td><b>Direct Query / ODAG</b>: queries pushed to the source.</td></tr>
+            <td>QVF <b>app loaded into the engine’s RAM</b> (tables + associative index); scheduled reload.
+              <span class="why">Bottleneck: raw grain must fit in engine RAM and reload scales with it; summarize to fit and the outlier disappears.</span></td>
+            <td><b>Direct Query / ODAG</b>: queries pushed to the source; not in the in-memory engine.
+              <span class="why">Bottleneck: the chart still caps marks so the pushed query is aggregated; ODAG only loads a chosen slice into memory first — a round-trip either way.</span></td></tr>
       </tbody>
     </table>
-  </div>
-
-  <div class="define">
-    <p><b>Why very large data is the bottleneck — the grain trap.</b> Whatever the mode, you face the
-      same fork, and both ends lose:</p>
-    <ul>
-      <li><b>Load / query at raw grain</b> (so you can see individual points): the resident copy becomes
-        the size of the raw data — tens of GB to TB in RAM/capacity, with refreshes that scale with the
-        data. It <em>doesn’t fit and doesn’t scale</em>. (DirectQuery avoids the copy, but the chart
-        still can’t render a billion marks, so the query is forced to aggregate anyway.)</li>
-      <li><b>Load / query pre-aggregated</b> (daily averages, percentiles): small, fast, scales fine —
-        <em>but the raw grain is gone</em>, so the individual outlier is no longer in the data the chart
-        can show.</li>
-    </ul>
-    <p>So the resident copy’s size is a real operational cost <em>only in the pre-load mode</em> —
-      DirectQuery removes it. But neither mode lets you <b>see</b> the raw outlier, because the
-      rendering cap forces a reduction to a few thousand marks either way. <b>That cap is the
-      mode-independent wall.</b></p>
+    <p class="modes-note"><b>The through-line:</b> pre-load hits a size/refresh wall at raw grain (and
+      DirectQuery removes only that); but in <em>every</em> cell the chart’s few-thousand-mark cap forces
+      the data down to a summary before it’s drawn. <b>That rendering cap — not the resident copy — is
+      the mode-independent bottleneck</b>, and it is exactly what erases the outlier.</p>
   </div>
 
   <p>The Databricks App does not hit that wall: it never renders raw points in the browser. It computes
