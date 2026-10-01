@@ -6,7 +6,11 @@
 <title>Fleet ECU Dashboard</title>
 <script src="vendor/plotly.min.js"></script>
 <style>
-  :root{ --ink:#1B3139; --coral:#FF3621; --slate:#618794; --line:#e6e4df; --bg:#F9F7F4; }
+  :root{
+    --ink:#1B3139; --coral:#FF3621; --slate:#618794; --line:#e6e4df; --bg:#F9F7F4;
+    /* palette used by the embedded physics diagrams (from the story page) */
+    --cool:#3A7CA5; --warm:#E8B23A; --hot:#E5481F; --ok:#2F8F6B;
+  }
   *{box-sizing:border-box}
   body{margin:0;font-family:'DM Sans',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
   header{padding:12px 20px;border-bottom:1px solid var(--line);background:#fff}
@@ -16,10 +20,6 @@
   .pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:12px;
         background:#eef1f2;color:#334;border:1px solid var(--line)}
   .pill.hot{background:#ffe6dc;color:#b3341f;border-color:#ffd9c9}
-  .tabs{display:flex;gap:6px;padding:10px 20px 0}
-  .tab{font-size:12px;padding:6px 12px;border:1px solid var(--line);border-bottom:none;
-       border-radius:6px 6px 0 0;background:#f0efeb;cursor:pointer;color:var(--slate)}
-  .tab.active{background:#fff;color:var(--ink);font-weight:600}
   .tabdesc{font-size:11px;color:var(--slate);padding:6px 20px 0;min-height:30px}
   .wrap{display:flex;flex-direction:column;gap:14px;padding:8px 14px 40px}
   .panel{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;position:relative}
@@ -39,17 +39,59 @@
   tr.vrow{cursor:pointer}
   tr.vrow:hover{background:#fff3ee}
   tr.vrow.sel{background:#ffe6dc;font-weight:600}
-  .bottom{padding:0 14px 16px}
-  .bottom .panel{min-height:0}
   .tag{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;background:#eef;color:#334;margin-left:6px}
   .tab-note{background:#fff8f0;border:1px solid #ffd9c9;border-radius:6px;padding:6px 10px;font-size:11px;margin:0 4px 6px;color:#8a3b1f}
+
+  /* ---- story / explainer section (collapsible) ---------------------------- */
+  .story{margin:14px 14px 0;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .story>summary{list-style:none;cursor:pointer;padding:14px 18px;font-size:15px;font-weight:600;
+       display:flex;align-items:center;gap:10px;color:var(--ink)}
+  .story>summary::-webkit-details-marker{display:none}
+  .story>summary .chev{color:var(--slate);font-size:12px;font-weight:600;margin-left:auto;transition:transform .15s}
+  .story[open]>summary .chev{transform:rotate(90deg)}
+  .story>summary .sub{font-weight:400;color:var(--slate);font-size:12px}
+  .story .body{padding:0 24px 26px;max-width:900px}
+  .story h3{font-size:17px;margin:26px 0 6px;color:var(--ink)}
+  .story h4{font-size:13px;margin:18px 0 4px;color:var(--ink);font-family:'IBM Plex Mono',ui-monospace,monospace;
+       text-transform:uppercase;letter-spacing:.06em}
+  .story p{font-size:14px;line-height:1.65;color:#2b3a40;max-width:68ch;margin:8px 0}
+  .story .lede{font-size:16px;color:#2b3a40}
+  .story b{color:var(--ink)}
+  .story figure{margin:14px 0 0}
+  .story figure svg{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:10px;
+       background:#fbfaf8;color:var(--ink);padding:8px}
+  .story figcaption{font-size:12px;color:var(--slate);margin-top:8px;line-height:1.55}
+  .story .reads{margin:12px 0 0;padding:10px 14px;border-radius:8px;font-size:12.5px;line-height:1.55;
+       background:#fff4ef;border:1px solid #ffd9c9}
+  .story .reads b{color:var(--hot)}
+  .story .proof{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0}
+  .story .proof .s{flex:1;min-width:150px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fbfaf8}
+  .story .proof .k{font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.05em}
+  .story .proof .v{font-size:30px;font-weight:700;line-height:1.1;margin:2px 0}
+  .story .proof .u{font-size:11px;color:var(--slate)}
+  .story .proof .s.hot .v{color:var(--hot)}
+  .story .proof .s.cool .v{color:var(--cool)}
+  /* BI comparison table */
+  .cmp{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0}
+  .cmp .r{display:grid;grid-template-columns:150px 1fr 1fr;gap:0;font-size:12.5px}
+  .cmp .r+.r{border-top:1px solid var(--line)}
+  .cmp .r.head{background:#f3f1ec;font-weight:600;color:var(--slate);font-size:11px;
+       text-transform:uppercase;letter-spacing:.05em}
+  .cmp .r>div{padding:9px 12px}
+  .cmp .r>div+div{border-left:1px solid var(--line)}
+  .cmp .ax{font-weight:600;color:var(--ink)}
+  .cmp .bi{background:#fff6f3}
+  .cmp .ap{background:#f1faf5}
+  .cmp .mk{font-family:'IBM Plex Mono',monospace;font-weight:700}
+  .cmp .no .mk{color:var(--hot)} .cmp .part .mk{color:var(--warm)} .cmp .yes .mk{color:var(--ok)}
+  .story .verdict{border-left:3px solid var(--coral);padding:4px 0 4px 16px;margin:18px 0 0;font-size:14px;color:#2b3a40}
 </style>
 </head>
 <body>
 <header>
   <h1>Fleet EV Battery — Field-Quality Monitor <span class="tag">Databricks App</span></h1>
   <p><b>Box-select</b> (drag a rectangle) over the hot samples in the density plot below.
-     The right panel fetches those cars' raw traces + forensic detail live from the lakehouse.</p>
+     The panels beneath fetch those cars' raw traces + forensic detail live from the lakehouse.</p>
   <div class="statbar" id="statbar">
     <span class="pill" id="pill-cars">… vehicles</span>
     <span class="pill" id="pill-rows">… raw samples</span>
@@ -57,6 +99,181 @@
     <span class="pill hot" id="pill-hot">… running hot</span>
   </div>
 </header>
+
+<!-- ======================= STORY / EXPLAINER ======================= -->
+<details class="story" id="story">
+  <summary>
+    The story — why a hot outlier matters, and why this needs an App
+    <span class="sub">(the physics, and what Power BI / Tableau can and cannot do)</span>
+    <span class="chev">▶</span>
+  </summary>
+  <div class="body">
+    <p class="lede">A fleet of EV batteries. Each pack reports its <b>hottest cell's temperature</b>
+      ten times a second. The job: find the one pack, among hundreds, that runs too hot — a warranty
+      risk and a thermal-safety precursor.</p>
+
+    <h3>Why outlier detection — the fault is never the average</h3>
+    <p>A hot pack is a rare, seconds-long spike. Any average — over time, over cells, over the fleet —
+      erases it. A cell that climbs to 70&nbsp;°C for eight seconds during a fast charge is a thermal
+      event, but averaged across a day, a pack and a fleet it vanishes into a healthy-looking
+      mid-thirties number. So you must keep every <b>raw</b> sample, plot the whole fleet at full
+      resolution, and go find the individual packs that sit above the healthy band. That is outlier
+      detection, and it is the entire reason this dashboard exists.</p>
+    <div class="proof">
+      <div class="s cool"><div class="k">Fleet median</div><div class="v">39.1</div>
+        <div class="u">°C — what an average shows</div></div>
+      <div class="s"><div class="k">Top 0.1%</div><div class="v">62.8</div>
+        <div class="u">°C — past the risk line</div></div>
+      <div class="s hot"><div class="k">Hottest</div><div class="v">72.5</div>
+        <div class="u">°C — the packs we must find</div></div>
+    </div>
+
+    <h3>A hot outlier is a defect you can name</h3>
+    <p>The signal is cell temperature, so reading the outlier is reading a physical failure. These are
+      the three diagrams from the story page, in order.</p>
+
+    <h4>1 · Where the number comes from — pack → module → cell</h4>
+    <figure>
+      <svg viewBox="0 0 720 260" role="img" aria-label="A battery pack contains modules; a module contains cells on a cooling plate with a temperature sensor; the BMS reports the hottest cell temperature">
+        <rect x="20" y="30" width="200" height="200" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="120" y="24" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="currentColor">PACK (the vehicle’s battery)</text>
+        <g fill="none" stroke="currentColor" stroke-width="1" opacity="0.55">
+          <rect x="36" y="46" width="80" height="78" rx="3"/><rect x="124" y="46" width="80" height="78" rx="3"/>
+          <rect x="36" y="136" width="80" height="78" rx="3"/><rect x="124" y="136" width="80" height="78" rx="3"/>
+        </g>
+        <rect x="124" y="46" width="80" height="78" rx="3" fill="none" stroke="var(--cool)" stroke-width="2"/>
+        <text x="120" y="246" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">= many modules</text>
+        <line x1="228" y1="85" x2="290" y2="85" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+        <rect x="300" y="34" width="180" height="150" rx="8" fill="none" stroke="var(--cool)" stroke-width="1.5"/>
+        <text x="390" y="28" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="currentColor">MODULE</text>
+        <g fill="none" stroke="currentColor" stroke-width="1">
+          <rect x="316" y="50" width="16" height="86" rx="7"/><rect x="338" y="50" width="16" height="86" rx="7"/>
+          <rect x="360" y="50" width="16" height="86" rx="7"/><rect x="404" y="50" width="16" height="86" rx="7"/>
+          <rect x="426" y="50" width="16" height="86" rx="7"/><rect x="448" y="50" width="16" height="86" rx="7"/>
+        </g>
+        <rect x="382" y="50" width="16" height="86" rx="7" fill="none" stroke="var(--hot)" stroke-width="2.2"/>
+        <rect x="308" y="146" width="164" height="12" rx="3" fill="none" stroke="var(--slate)" stroke-width="1.2"/>
+        <text x="390" y="170" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--slate)">liquid cooling plate</text>
+        <circle cx="390" cy="46" r="4" fill="var(--hot)"/>
+        <line x1="390" y1="42" x2="390" y2="20" stroke="var(--hot)" stroke-width="1"/>
+        <text x="396" y="16" font-family="IBM Plex Mono" font-size="10.5" fill="var(--hot)">temp sensor</text>
+        <line x1="488" y1="95" x2="548" y2="95" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+        <rect x="558" y="60" width="142" height="72" rx="8" fill="none" stroke="var(--hot)" stroke-width="1.5"/>
+        <text x="629" y="54" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="currentColor">BMS SIGNAL</text>
+        <text x="629" y="90" text-anchor="middle" font-family="IBM Plex Mono" font-size="13" fill="var(--hot)">cell_temp_max</text>
+        <text x="629" y="110" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">10× per second</text>
+        <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <polygon points="0,0 9,4.5 0,9" fill="currentColor"/></marker></defs>
+      </svg>
+      <figcaption>The Battery Management System reports the <b>hottest cell</b> in the pack, ten times a
+        second. That one number, per vehicle, is the whole signal — and one bad cell is enough to move it.
+        In the data this is <b>cell_temp_max</b> on the Y axis of every plot.</figcaption>
+    </figure>
+
+    <h4>2 · What went wrong inside the cell — healthy vs failing</h4>
+    <figure>
+      <svg viewBox="0 0 720 250" role="img" aria-label="Cross-section of a healthy cell with intact separator versus a failing cell with a damaged separator and a hot spot of high internal resistance">
+        <text x="170" y="26" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--ok)">HEALTHY CELL</text>
+        <rect x="60" y="40" width="220" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <rect x="76" y="54" width="56" height="122" fill="none" stroke="var(--cool)" stroke-width="1"/>
+        <rect x="208" y="54" width="56" height="122" fill="none" stroke="var(--warm)" stroke-width="1"/>
+        <line x1="150" y1="54" x2="150" y2="176" stroke="var(--ok)" stroke-width="2"/>
+        <line x1="190" y1="54" x2="190" y2="176" stroke="var(--ok)" stroke-width="2"/>
+        <text x="104" y="200" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--slate)">anode</text>
+        <text x="236" y="200" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--slate)">cathode</text>
+        <text x="170" y="216" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--ok)">intact separator</text>
+        <g stroke="currentColor" stroke-width="1" opacity="0.5" marker-end="url(#ar2)">
+          <line x1="140" y1="80" x2="200" y2="80"/><line x1="140" y1="115" x2="200" y2="115"/><line x1="140" y1="150" x2="200" y2="150"/>
+        </g>
+        <text x="170" y="236" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--slate)">low resistance · even current · cool</text>
+        <text x="550" y="26" text-anchor="middle" font-family="IBM Plex Mono" font-size="12" fill="var(--hot)">FAILING CELL</text>
+        <rect x="440" y="40" width="220" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <rect x="456" y="54" width="56" height="122" fill="none" stroke="var(--cool)" stroke-width="1"/>
+        <rect x="588" y="54" width="56" height="122" fill="none" stroke="var(--warm)" stroke-width="1"/>
+        <line x1="530" y1="54" x2="530" y2="176" stroke="var(--hot)" stroke-width="2" stroke-dasharray="6 5"/>
+        <line x1="570" y1="54" x2="570" y2="176" stroke="var(--hot)" stroke-width="2" stroke-dasharray="6 5"/>
+        <path d="M512,150 L536,120 L556,140 L590,96" fill="none" stroke="var(--hot)" stroke-width="1.6"/>
+        <circle cx="550" cy="120" r="22" fill="var(--hot)" opacity="0.18"/>
+        <circle cx="550" cy="120" r="11" fill="var(--hot)" opacity="0.5"/>
+        <text x="550" y="200" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--hot)">degraded separator + dendrite</text>
+        <text x="550" y="236" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" fill="var(--hot)">high resistance · crowded current · HOT SPOT</text>
+        <defs><marker id="ar2" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+          <polygon points="0,0 8,4 0,8" fill="currentColor"/></marker></defs>
+      </svg>
+      <figcaption>A healthy cell moves ions evenly across an intact separator at low resistance, so it
+        stays cool. In a failing cell the separator degrades and a dendrite bridges the gap: current
+        crowds through a narrow path, resistance climbs, and a local <b>hot spot</b> forms. That hot
+        spot is the seconds-long spike you see in the raw traces below.</figcaption>
+    </figure>
+
+    <h4>3 · Why it runs hot — same current, more heat</h4>
+    <figure>
+      <svg viewBox="0 0 720 190" role="img" aria-label="The same current through a higher internal resistance produces more heat, following heat equals current squared times resistance">
+        <text x="60" y="40" font-family="IBM Plex Mono" font-size="11" fill="var(--ok)">healthy cell</text>
+        <line x1="60" y1="60" x2="300" y2="60" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar3)"/>
+        <text x="150" y="52" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="currentColor">same current I</text>
+        <rect x="150" y="70" width="60" height="26" rx="4" fill="none" stroke="var(--ok)" stroke-width="1.5"/>
+        <text x="180" y="87" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--ok)">low R</text>
+        <text x="340" y="64" font-family="IBM Plex Mono" font-size="12" fill="var(--ok)">→ little heat</text>
+        <text x="60" y="130" font-family="IBM Plex Mono" font-size="11" fill="var(--hot)">failing cell</text>
+        <line x1="60" y1="150" x2="300" y2="150" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar3)"/>
+        <text x="150" y="142" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="currentColor">same current I</text>
+        <rect x="150" y="160" width="60" height="26" rx="4" fill="none" stroke="var(--hot)" stroke-width="2.2"/>
+        <text x="180" y="177" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--hot)">HIGH R</text>
+        <text x="340" y="154" font-family="IBM Plex Mono" font-size="12" fill="var(--hot)">→ much more heat</text>
+        <rect x="480" y="70" width="200" height="80" rx="10" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <text x="580" y="104" text-anchor="middle" font-family="IBM Plex Mono" font-size="20" fill="currentColor">heat = I²·R</text>
+        <text x="580" y="130" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="var(--slate)">R up → heat up, same I</text>
+        <defs><marker id="ar3" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <polygon points="0,0 9,4.5 0,9" fill="currentColor"/></marker></defs>
+      </svg>
+      <figcaption>Heat produced in a cell is current squared times resistance (I²·R). The failing cell
+        carries the <em>same</em> current the rest of the pack does, but its higher internal resistance
+        turns more of that current into heat.</figcaption>
+    </figure>
+    <div class="reads">In the data: this is why an outlier can run hot <b>at a normal state of charge and
+      load</b> — the density map places it high on the temperature axis even where healthy cars sit cool,
+      because the heat comes from the defect, not from how hard the car is being driven. That is the signal
+      you brush, below.</div>
+
+    <h3>What Power BI and Tableau can — and cannot — replicate</h3>
+    <p>The comparison is honest. The limits below are real consequences of how a resident-extract BI tool
+      moves data, not a rigged benchmark. The three steps of this app map onto them directly.</p>
+    <div class="cmp">
+      <div class="r head"><div>Capability</div><div>Power BI / Tableau / Qlik</div><div>This Databricks App</div></div>
+      <div class="r">
+        <div class="ax">Full-resolution picture of every raw sample</div>
+        <div class="bi no"><span class="mk">✕</span> Charts cap at a few thousand marks and sample the rest. The density map becomes a coarse hexbin and a lone hot cell is smeared into a pale bin and lost.</div>
+        <div class="ap yes"><span class="mk">✓</span> Renders every raw sample as a WebGL point cloud. The single anomalous car stays individually visible and clickable.</div>
+      </div>
+      <div class="r">
+        <div class="ax">Fetch the raw rows behind a selection, on demand</div>
+        <div class="bi no"><span class="mk">✕</span> A brush filters marks already loaded into the extract. To show raw traces, the raw rows had to be pre-extracted up front — which is what makes the extract huge and slow, or they simply are not there.</div>
+        <div class="ap yes"><span class="mk">✓</span> The lasso becomes a bounded <span class="mk">WHERE vin IN (…)</span> pushdown that lazily fetches raw rows never in the browser — the heavy table scanned only for the cars the query needs.</div>
+      </div>
+      <div class="r">
+        <div class="ax">Scale as the fleet grows</div>
+        <div class="bi part"><span class="mk">~</span> At raw grain the extract grows to the size of the raw data (GB–TB); refresh scales with it until loads stall. DirectQuery/live avoids the copy but each interaction fires many aggregated queries.</div>
+        <div class="ap yes"><span class="mk">✓</span> Queries bounded slices in Delta, so response time stays roughly flat as vehicles are added. Nothing is fully resident.</div>
+      </div>
+      <div class="r">
+        <div class="ax">Aggregated overview (medians, bands, KPIs)</div>
+        <div class="bi yes"><span class="mk">✓</span> This is exactly what BI tools are good at. A healthy-band chart, fleet medians and a KPI tile are easy and fast.</div>
+        <div class="ap yes"><span class="mk">✓</span> Also easy — the app pre-materializes the aggregate (<span class="mk">bms_daily_vin</span>) for the overview.</div>
+      </div>
+      <div class="r">
+        <div class="ax">Act on a finding (open a ticket, email the owner, trigger a job)</div>
+        <div class="bi no"><span class="mk">✕</span> Renders only. Running code or writing a row needs a bolted-on extension or webhook, not the tool itself.</div>
+        <div class="ap yes"><span class="mk">✓</span> It is a real app: the same server that fetched the raw rows can run the follow-up action in one flow.</div>
+      </div>
+    </div>
+    <p class="verdict"><b>Bottom line.</b> Power BI and Tableau can replicate the <b>aggregated overview</b> —
+      the band, the medians, the KPIs — and they do it well. What they cannot replicate at fleet scale is
+      the <b>full-resolution outlier picture</b> and the <b>on-demand raw drill</b> behind a selection.
+      Those two are the whole point of outlier detection on raw telemetry, and they are what make this a
+      Databricks App rather than a BI dashboard.</p>
+  </div>
+</details>
 
 <div class="tabdesc" id="tabdesc"></div>
 
@@ -79,7 +296,7 @@
     <div id="right" class="plot"></div>
     <div id="suspects"></div>
     <div class="stat" id="right-stat"></div>
-    <div class="hint">Click a vehicle row to inspect it ↓</div>
+    <div class="hint">The hottest suspect is drilled below automatically — or click any row to inspect it ↓</div>
   </div>
 
   <div class="panel hidden" id="bottom-panel">
@@ -192,31 +409,42 @@ async function doBrush(box){
   const more = d.n_members > d.n_sampled ? ` of ${d.n_members} in selection` : '';
   document.getElementById('rp-badge').textContent=`${d.n_sampled} sampled${more}`;
   document.getElementById('right-stat').textContent=`sampled the ${d.n_sampled} hottest of ${d.n_members} brushed vehicles · pushdown fetched ${d.traces.length} raw rows in ${ms} ms — never resident in the browser · ${sizeLbl}`;
-  // NO auto-selection: the single-vehicle panel stays hidden until the user clicks a row.
+  // Auto-drill the hottest suspect so the third plot always appears (user can still click any row).
+  if(s.length){
+    const firstRow = susEl.querySelector('tr.vrow');
+    if(firstRow){ firstRow.classList.add('sel'); drawVehicle(s[0].vin, {noScroll:true}); }
+  }
 }
 
 // bottom plot: one vehicle, raw samples — cell temperature vs State of Charge (the density axes)
-async function drawVehicle(vin){
+async function drawVehicle(vin, opts){
+  opts = opts || {};
   const bp=document.getElementById('bottom-panel');
   bp.classList.remove('hidden');
   document.getElementById('bp-badge').textContent='loading '+vin.slice(-6)+'…';
-  bp.scrollIntoView({behavior:'smooth', block:'start'});
-  const r=await fetch('/api/vehicle?vin='+encodeURIComponent(vin));
-  const txt=await r.text(); const d=JSON.parse(txt); const S=d.samples;
-  const vSize=dataSizeLabel(txt, d.scanned_bytes);
-  const trace={ x:S.map(p=>p.soc_pct), y:S.map(p=>p.cell_temp_max_c), type:'scattergl',
-    mode:'markers',
-    marker:{size:3,color:S.map(p=>p.cell_temp_max_c),
-      colorscale:[[0,'#9aa7ad'],[0.6,'#FF8C42'],[1,COL.coral]],
-      colorbar:{title:{text:'°C',font:{size:9}},thickness:8,len:0.7}},
-    name:vin.slice(-6),hoverinfo:'x+y'};
-  Plotly.newPlot('bottom',[trace],{margin:{t:6,r:10,b:40,l:48},showlegend:false,
-    xaxis:{title:'State of Charge (%)'},yaxis:{title:'cell_temp_max (°C)'},
-    shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:55,y1:55,line:{color:COL.coral,dash:'dot',width:1}}]},
-    {displayModeBar:false});
-  document.getElementById('bp-badge').textContent=`${vin.slice(-6)} · ${S.length.toLocaleString()} raw samples · ${vSize}`;
-  document.getElementById('bottom-title').firstChild.textContent=
-     `Single-vehicle detail — State of Charge vs cell temp `;
+  if(!opts.noScroll) bp.scrollIntoView({behavior:'smooth', block:'start'});
+  try{
+    const r=await fetch('/api/vehicle?vin='+encodeURIComponent(vin));
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const txt=await r.text(); const d=JSON.parse(txt); const S=d.samples||[];
+    const vSize=dataSizeLabel(txt, d.scanned_bytes);
+    const trace={ x:S.map(p=>p.soc_pct), y:S.map(p=>p.cell_temp_max_c), type:'scattergl',
+      mode:'markers',
+      marker:{size:3,color:S.map(p=>p.cell_temp_max_c),
+        colorscale:[[0,'#9aa7ad'],[0.6,'#FF8C42'],[1,COL.coral]],
+        colorbar:{title:{text:'°C',font:{size:9}},thickness:8,len:0.7}},
+      name:vin.slice(-6),hoverinfo:'x+y'};
+    Plotly.newPlot('bottom',[trace],{margin:{t:6,r:10,b:40,l:48},showlegend:false,
+      xaxis:{title:'State of Charge (%)'},yaxis:{title:'cell_temp_max (°C)'},
+      shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:55,y1:55,line:{color:COL.coral,dash:'dot',width:1}}]},
+      {displayModeBar:false});
+    document.getElementById('bp-badge').textContent=`${vin.slice(-6)} · ${S.length.toLocaleString()} raw samples · ${vSize}`;
+    document.getElementById('bottom-title').firstChild.textContent=
+       `Single-vehicle detail — State of Charge vs cell temp `;
+  }catch(e){
+    document.getElementById('bp-badge').textContent='error';
+    document.getElementById('bottom').innerHTML='<div class="stat">could not load vehicle '+vin.slice(-6)+': '+e.message+'</div>';
+  }
 }
 
 // sample-size slider: show the value live; re-run the current brush when the user lets go
