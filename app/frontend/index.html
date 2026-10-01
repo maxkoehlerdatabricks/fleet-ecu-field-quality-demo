@@ -41,6 +41,11 @@
   tr.vrow.sel{background:#ffe6dc;font-weight:600}
   .tag{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;background:#eef;color:#334;margin-left:6px}
   .tab-note{background:#fff8f0;border:1px solid #ffd9c9;border-radius:6px;padding:6px 10px;font-size:11px;margin:0 4px 6px;color:#8a3b1f}
+  .warming{display:flex;align-items:center;justify-content:center;height:100%;min-height:200px;
+       text-align:center;padding:24px;font-size:13px;color:var(--slate);line-height:1.6}
+  .warming.err{color:#b3341f}
+  .warming button{margin-left:10px;font-size:12px;padding:4px 12px;border:1px solid var(--coral);
+       background:#fff;color:var(--coral);border-radius:6px;cursor:pointer}
 
   /* ---- story / explainer section (collapsible) ---------------------------- */
   .story{margin:14px 14px 0;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden}
@@ -343,7 +348,33 @@ async function loadStats(){
 }
 
 async function drawDensity(){
-  const r=await fetch('/api/density'); const txt=await r.text(); const d=JSON.parse(txt); DATA.density=d;
+  const leftStat=document.getElementById('left-stat');
+  const leftDiv=document.getElementById('left');
+  // The SQL warehouse auto-stops when idle, so the FIRST query after a quiet spell blocks
+  // 20-40s while it restarts. Show that explicitly so the app never looks broken/empty, and
+  // keep a "still warming up" note ticking while we wait.
+  let waited=0;
+  leftDiv.innerHTML='<div class="warming">Loading the fleet density… the SQL warehouse may be waking up (first query after idle can take ~30s).</div>';
+  leftStat.textContent='warming up the warehouse…';
+  const warmTimer=setInterval(()=>{ waited+=1;
+    if(waited>=5) leftStat.textContent=`still warming up the warehouse… (${waited}s) — the first query after idle takes a moment`;
+  },1000);
+  let txt, d;
+  try{
+    const r=await fetch('/api/density');
+    if(!r.ok) throw new Error('HTTP '+r.status+' from /api/density');
+    txt=await r.text(); d=JSON.parse(txt);
+    if(!d.cells || !d.cells.length) throw new Error('no density cells returned');
+  }catch(e){
+    clearInterval(warmTimer);
+    leftDiv.innerHTML='<div class="warming err">Could not load the fleet density: '+e.message+
+      '.<br>The warehouse may still be starting. <button id="retry-density">Retry</button></div>';
+    leftStat.textContent='load failed — retry when the warehouse is ready';
+    const btn=document.getElementById('retry-density'); if(btn) btn.onclick=drawDensity;
+    return;
+  }
+  clearInterval(warmTimer);
+  DATA.density=d;
   DATA.density._size=dataSizeLabel(txt, d.scanned_bytes);
   const cells=d.cells;
   const t={x:cells.map(c=>c.soc_bin),y:cells.map(c=>c.temp_bin),z:cells.map(c=>c.log_n),
